@@ -7,7 +7,7 @@
   ],
   "icon" : "bolt.shield",
   "runInApp" : false,
-  "version" : "2.1.1",
+  "version" : "2.1.2",
   "remoteResource" : {
     "autoUpdateInterval" : 600,
     "url" : "https://github.com/Primovist/Scripting/tree/main/网上国网",
