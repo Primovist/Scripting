@@ -2,8 +2,8 @@
   "description" : "",
   "runInApp" : false,
   "remoteResource" : {
-    "hash" : "eba9ddd76501343344e2b9207485f107",
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/raw\/refs\/heads\/main\/中国电信.scripting",
+    "hash" : "",
+    "url" : "https://github.com/Primovist/Scripting/tree/main/中国电信",
     "autoUpdateInterval" : 600
   },
   "intentInputTypes" : [
@@ -18,7 +18,7 @@
     "de" : "",
     "fr" : "",
     "es" : "",
-    "zh" : "",
+    "zh" : "中国电信",
     "it" : "",
     "pt" : "",
     "ja" : "",
@@ -31,7 +31,7 @@
     {
       "name" : "LChen",
       "email" : "lchen@lchen.ac.cn",
-      "homepage" : null
+      "homepage" : "https://github.com/Primovist/Scripting"
     }
   ],
   "name" : "中国电信",

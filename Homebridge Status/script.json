@@ -1,8 +1,8 @@
 {
   "remoteResource" : {
     "autoUpdateInterval" : 600,
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/raw\/refs\/heads\/main\/Homebridge Status.scripting",
-    "hash" : "ba4339b55fb50004d24aaf0a13efeefc"
+    "url" : "https://github.com/Primovist/Scripting/tree/main/Homebridge Status",
+    "hash" : ""
   },
   "version" : "1.0.0",
   "icon" : "house.fill",
@@ -16,7 +16,7 @@
   ],
   "permissions" : null,
   "author" : {
-    "homepage" : null,
+    "homepage" : "https://github.com/Primovist/Scripting",
     "name" : "LChen",
     "email" : "lchen@lchen.ac.cn"
   },
