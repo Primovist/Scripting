@@ -10,7 +10,7 @@
   "version" : "2.1.1",
   "remoteResource" : {
     "autoUpdateInterval" : 600,
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/raw\/refs\/heads\/main\/网上国网.scripting",
+    "url" : "https://github.com/Primovist/Scripting/tree/main/网上国网",
     "hash" : "0be89735850a101c10765e07639c4483"
   },
   "localizedNames" : {
