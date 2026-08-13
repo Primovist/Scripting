@@ -1,0 +1,48 @@
+{
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/Honye\/scriptable-scripts\/master\/static\/sgcc.png",
+  "contributors" : [
+  ],
+  "intentInputTypes" : [
+
+  ],
+  "icon" : "bolt.shield",
+  "runInApp" : false,
+  "version" : "2.1.1",
+  "remoteResource" : {
+    "autoUpdateInterval" : 600,
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/raw\/refs\/heads\/main\/网上国网.scripting",
+    "hash" : "0be89735850a101c10765e07639c4483"
+  },
+  "localizedNames" : {
+    "en" : "State Grid",
+    "pt" : "",
+    "zh" : "网上国网",
+    "de" : "",
+    "ru" : "",
+    "es" : "",
+    "ja" : "",
+    "it" : "",
+    "fr" : ""
+  },
+  "description" : "国家电网电费查询小组件",
+  "color" : "rgba(0, 112, 107, 1)",
+  "entry" : "index.tsx",
+  "name" : "网上国网",
+  "localizedDescriptions" : {
+    "de" : "",
+    "zh" : "查询国家电网电费余额和用电量",
+    "en" : "Query State Grid electricity bill and usage",
+    "pt" : "",
+    "ru" : "",
+    "fr" : "",
+    "it" : "",
+    "es" : "",
+    "ja" : ""
+  },
+  "author" : {
+    "name" : "LChen",
+    "email" : "lchen@lchen.ac.cn",
+    "homepage" : "https:\/\/github.com\/Primovist"
+  },
+  "permissions" : null
+}
