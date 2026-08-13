@@ -1,7 +1,7 @@
 {
-	"id": "yuheng.app.sub",
-	"name": "yuheng 脚本订阅",
-	"author": "@yuheng",
+	"id": "lchen.app.sub",
+	"name": "LChen 脚本订阅",
+	"author": "@Primovist",
 	"icon": "https://www.scripting.fun/assets/imgs/Icon-App.png",
 	"repo": "https://github.com/Yuheng0101/X",
 	"apps": [
