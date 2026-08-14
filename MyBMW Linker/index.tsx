@@ -29,7 +29,7 @@ import { KEYS, type Settings, type VehicleData } from "./constants"
 import { hidden, keyGet, keyRemove, normalizeSettings, readSettings, writeSettings } from "./storage"
 
 type VehicleCoordinate = { latitude: number; longitude: number }
-type PreviewFamily = "systemSmall" | "systemMedium" | "systemLarge" | "systemExtraLarge" | "accessoryCircular" | "accessoryRectangular" | "accessoryInline"
+type PreviewFamily = "systemSmall" | "systemMedium" | "systemLarge"
 
 
 function vehicleCoordinate(p: any): VehicleCoordinate | null {
@@ -213,7 +213,20 @@ function SettingField({ label, value, onChanged }: { label: string; value: strin
     <TextField title="" value={value} onChanged={onChanged} frame={{ width: 190 }} multilineTextAlignment="trailing" />
   </HStack>
 }
-function SettingsView({ settings, onSaved }: { settings: Settings; onSaved: () => void }) {
+function hasCombustionFuel(vehicle: VehicleData | null): boolean {
+  // 与首页/Widget 的 fuelRows 保持一致：只有实际存在油量数据时才显示油箱容积。
+  if (!vehicle) return true
+  const p: any = vehicle.properties || {}
+  const fuelLevel = p?.combustionFuelLevel
+  const hasValue = (v: any) => v !== undefined && v !== null && v !== ""
+  const hasFuel = !!fuelLevel && (hasValue(fuelLevel.remainingFuelLiters) || hasValue(fuelLevel.remainingFuelPercent))
+  if (hasFuel) return true
+  if (p?.electricChargingState) return false
+  return true
+}
+
+
+function SettingsView({ settings, vehicle, onSaved }: { settings: Settings; vehicle: VehicleData | null; onSaved: () => void }) {
   const [s, setS] = useState<Settings>(settings)
   const update = (patch: Settings) => { const next = { ...s, ...patch }; setS(next); writeSettings(next); onSaved() }
   return <NavigationStack>
@@ -221,7 +234,7 @@ function SettingsView({ settings, onSaved }: { settings: Settings; onSaved: () =
       <Section title="车辆与显示">
         <SettingField label="自定义车名" value={s.customName || ""} onChanged={v => update({ customName: v })} />
         <SettingField label="车牌" value={s.licensePlate || ""} onChanged={v => update({ licensePlate: v })} />
-        <SettingField label="油箱容积(L)" value={String(s.totalFuelLiters || 0)} onChanged={v => update({ totalFuelLiters: Number(v) || 0 })} />
+        {hasCombustionFuel(vehicle) ? <SettingField label="油箱容积(L)" value={String(s.totalFuelLiters || 0)} onChanged={v => update({ totalFuelLiters: Number(v) || 0 })} /> : null}
         <SettingField label="车辆图片 URL" value={s.customVehicleImage || ""} onChanged={v => update({ customVehicleImage: v })} />
         <SettingField label="Logo 图片 URL" value={s.customLogoImage || ""} onChanged={v => update({ customLogoImage: v })} />
       </Section>
@@ -259,7 +272,7 @@ function Dashboard() {
   const [vehicle, setVehicle] = useState<VehicleData | null>(null)
   const [status, setStatus] = useState("准备就绪")
   const [loading, setLoading] = useState(false)
-  const [previewFamily, setPreviewFamily] = useState<PreviewFamily>("systemMedium")
+  const [previewFamily, setPreviewFamily] = useState<PreviewFamily>("systemLarge")
   const [lastLocationSignature, setLastLocationSignature] = useState("")
   async function refresh(force = false) {
     setLoading(true)
@@ -298,7 +311,7 @@ function Dashboard() {
   }
 
   async function openSettings() {
-    await Navigation.present(<SettingsView settings={settings} onSaved={() => setSettings(normalizeSettings(readSettings()))} />)
+    await Navigation.present(<SettingsView settings={settings} vehicle={vehicle} onSaved={() => setSettings(normalizeSettings(readSettings()))} />)
   }
   async function openMap() {
     await Navigation.present(<NavigationStack><List navigationTitle="车辆位置" navigationBarTitleDisplayMode="inline"><Section><VehicleMapView data={vehicle} /></Section></List></NavigationStack>)
@@ -341,10 +354,6 @@ function Dashboard() {
             <Text tag="systemSmall">小组件</Text>
             <Text tag="systemMedium">中组件</Text>
             <Text tag="systemLarge">大组件</Text>
-            <Text tag="systemExtraLarge">超大组件</Text>
-            <Text tag="accessoryCircular">圆形配件</Text>
-            <Text tag="accessoryRectangular">矩形配件</Text>
-            <Text tag="accessoryInline">行内配件</Text>
           </Picker>
           <Spacer />
           <Button title="预览" action={handlePreview} />

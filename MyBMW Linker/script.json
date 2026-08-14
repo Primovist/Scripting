@@ -1,45 +1,49 @@
 {
-  "iconImage" : "https:\/\/play-lh.googleusercontent.com\/06jX6wWF-2ebFDrLvoCKzRYYxmBNA3UNdSb20_2EmfoN9juoM-57HV35PzcyQPGFiuqAiur31XAA7EdsEj7oGw=w480-h960",
-  "description" : "My BMW vehicle status dashboard and widget.",
-  "version" : "1.0.0",
-  "entry" : "index.tsx",
-  "name" : "MyBMW Linker",
-  "icon" : "car.fill",
-  "localizedNames" : {
-    "es" : "",
-    "ja" : "",
-    "de" : "",
+  "localizedDescriptions" : {
     "it" : "",
     "en" : "",
+    "zh" : "My BMW 车辆状态面板与小组件。",
     "pt" : "",
-    "zh" : "MyBMW Linker",
-    "ru" : "",
-    "fr" : ""
-  },
-  "localizedDescriptions" : {
-    "pt" : "",
+    "de" : "",
     "fr" : "",
     "ja" : "",
-    "de" : "",
-    "zh" : "My BMW 车辆状态面板与小组件。",
-    "it" : "",
-    "es" : "",
-    "en" : "",
-    "ru" : ""
+    "ru" : "",
+    "es" : ""
   },
-  "color" : "#0066B1",
   "contributors" : [
 
   ],
-  "runInApp" : true,
-  "remoteResource" : null,
-  "permissions" : null,
+  "description" : "My BMW vehicle status dashboard and widget.",
+  "remoteResource" : {
+    "hash" : "9b8ac672b28f9298daca5878ae6ec7ed",
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/MyBMW%20Linker",
+    "autoUpdateInterval" : 43200
+  },
   "author" : {
     "email" : "lchen@lchen.ac.cn",
-    "name" : "LChen",
-    "homepage" : "https:\/\/github.com\/Primovist"
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "name" : "LChen"
   },
+  "runInApp" : true,
+  "version" : "1.0.1",
+  "iconImage" : "https:\/\/play-lh.googleusercontent.com\/06jX6wWF-2ebFDrLvoCKzRYYxmBNA3UNdSb20_2EmfoN9juoM-57HV35PzcyQPGFiuqAiur31XAA7EdsEj7oGw=w480-h960",
+  "permissions" : null,
+  "color" : "#0066B1",
+  "name" : "MyBMW Linker",
   "intentInputTypes" : [
 
-  ]
+  ],
+  "entry" : "index.tsx",
+  "localizedNames" : {
+    "de" : "",
+    "pt" : "",
+    "zh" : "MyBMW Linker",
+    "ja" : "",
+    "fr" : "",
+    "it" : "",
+    "ru" : "",
+    "es" : "",
+    "en" : ""
+  },
+  "icon" : "car.fill"
 }

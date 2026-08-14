@@ -81,12 +81,12 @@ async function createMapSnapshot(p: any): Promise<string | null> {
   return `data:image/png;base64,${base64}`
 }
 
-function Row({ icon, value, width, iconColor, lineLimit = 1, font = 11, widgetURL }: { icon: string; value: string; width?: number; iconColor?: string; lineLimit?: number; font?: number | "caption2"; widgetURL?: string }) {
+function Row({ icon, value, width, iconColor, lineLimit = 1, font = 11, widgetURL, textOpacity }: { icon: string; value: string; width?: number; iconColor?: string; lineLimit?: number; font?: number | "caption2"; widgetURL?: string; textOpacity?: number }) {
   const content = <HStack alignment="center" spacing={4} frame={width ? { width } : undefined}>
-    <ZStack alignment="center" frame={{ width: 11, height: 14 }}>
-      <Image systemName={icon} font={font} foregroundStyle={iconColor as any} />
+    <ZStack alignment="center" frame={{ width: 12, height: 12 }}>
+      <Image systemName={icon} font={font} foregroundStyle={iconColor as any} frame={{ width: 12, height: 12 }} />
     </ZStack>
-    <Text font={font} lineLimit={lineLimit}>{value}</Text>
+    <Text font={font} lineLimit={lineLimit} opacity={textOpacity}>{value}</Text>
   </HStack>
   return widgetURL ? <Link url={widgetURL}>{content}</Link> : content
 }
@@ -185,8 +185,8 @@ function VehicleContent({ data, settings, carImageUrl, compact = false }: { data
     <ZStack alignment="topLeading" frame={{ width, height: imageHeight }} offset={compact ? { x: 0, y: 0 } : { x: 0, y: -5 }}>
       <VStack alignment="leading" spacing={-3} frame={{ width: compact ? 62 : 76, height: compact ? 34 : 40 }} offset={{ x: compact ? -8 : -14, y: 0 }}>
         {controlStatus.length === 0 ? <VStack alignment="leading" spacing={-4}>
-          <Text font={titleFont} fontWeight="bold" opacity={0.72}>ALL</Text>
-          <Text font={titleFont} fontWeight="bold" opacity={0.72}>GOOD</Text>
+          <Text font={titleFont} fontWeight="bold" opacity={0.72} foregroundStyle={{ light: "#000000", dark: "#FFFFFF" }}>ALL</Text>
+          <Text font={titleFont} fontWeight="bold" opacity={0.72} foregroundStyle={{ light: "#000000", dark: "#FFFFFF" }}>GOOD</Text>
         </VStack> : <VStack alignment="leading" spacing={1}>
           {controlStatus.slice(0, 3).map((message, index) => <HStack spacing={2} key={`control-${index}`}>
             <Image systemName="exclamationmark.circle" font="caption2" foregroundStyle="systemRed" />
@@ -202,7 +202,7 @@ function VehicleContent({ data, settings, carImageUrl, compact = false }: { data
     <HStack spacing={2} frame={{ width }} offset={compact ? { x: 0, y: -2 } : { x: 0, y: -6 }}>
       <Spacer />
       <Image systemName={doorStatus.icon} font="caption2" foregroundStyle={doorStatus.ok ? "systemGreen" : "systemOrange"} />
-      <Text font="caption2" lineLimit={1}>{doorStatus.text}</Text>
+      <Text font="caption2" lineLimit={1} foregroundStyle={{ light: "#000000", dark: "#FFFFFF" }} opacity={0.5}>{doorStatus.text}</Text>
       <Spacer />
     </HStack>
   </VStack></Link>
@@ -228,7 +228,6 @@ function LargeTopWidget({ data, settings, carImageUrl }: { data: VehicleData; se
       <Text font="caption" lineLimit={1} frame={{ width: 78 }}>{settings.licensePlate || data.licensePlate || hidden(data.vin)}</Text>
       <Image imageUrl={settings.customLogoImage || DEFAULT_LOGO_LIGHT} resizable scaleToFit frame={{ width: 48, height: 24 }} />
     </HStack>
-
     <HStack spacing={4}>
       <VStack alignment="leading" spacing={2} frame={{ width: 174 }}> 
         <VStack alignment="leading" spacing={2} frame={{ width: 174 }}>
@@ -247,8 +246,8 @@ function LargeTopWidget({ data, settings, carImageUrl }: { data: VehicleData; se
           </VStack>
           </HStack>
           <VStack alignment="leading" spacing={4} frame={{ width: 174 }} offset={{ x: 5, y: 0 }}>
-            <Row icon={isLocked ? "lock.shield" : "xmark.shield"} value={`${isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`} iconColor={isLocked ? "systemGreen" : "systemRed"} lineLimit={1} />
-            <Row icon="location" value={address} iconColor="systemBlue" lineLimit={2} />
+            <Row icon={isLocked ? "lock.shield" : "xmark.shield"} value={`${isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`} iconColor={isLocked ? "systemGreen" : "systemRed"} lineLimit={1} textOpacity={0.5} />
+            <Row icon="location" value={address} iconColor="systemBlue" lineLimit={2} textOpacity={0.5} />
           </VStack>
         </VStack>
       </VStack>
@@ -272,12 +271,15 @@ function SmallWidget({ data, settings, carImageUrl }: { data: VehicleData; setti
   const smallStatus = `${isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`
   return <VStack alignment="center" spacing={3} frame={{ maxWidth: Infinity, maxHeight: Infinity }} padding={8} background={widgetBackground()}>
     <HStack alignment="center" spacing={6} frame={{ maxWidth: Infinity }}>
+      <Link url={appleMapsNavigationURL(p) || "maps:"}>
+        <Image systemName="location" font="caption2" foregroundStyle="systemBlue" />
+      </Link>
       <Spacer />
       <Text font="caption" lineLimit={1}>{plate}</Text>
       <Image imageUrl={settings.customLogoImage || DEFAULT_LOGO_LIGHT} resizable scaleToFit frame={{ width: 28, height: 18 }} />
     </HStack>
     <VehicleContent data={data} settings={settings} carImageUrl={carImageUrl} compact />
-    <Row icon={isLocked ? "lock.shield" : "xmark.shield"} value={smallStatus} iconColor={isLocked ? "systemGreen" : "systemRed"} font="caption2" lineLimit={1} />
+    <Row icon={isLocked ? "lock.shield" : "xmark.shield"} value={smallStatus} iconColor={isLocked ? "systemGreen" : "systemRed"} font="caption2" lineLimit={1} textOpacity={0.5} />
   </VStack>
 }
 
@@ -293,7 +295,7 @@ function LargeWidget({ data, settings, mapImageUrl, carImageUrl }: { data: Vehic
   const mapURL = appleMapsNavigationURL(p)
   return <VStack alignment="leading" spacing={0} padding={0} background={widgetBackground()} frame={{ maxWidth: Infinity, maxHeight: Infinity }}>
     <LargeTopWidget data={data} settings={settings} carImageUrl={carImageUrl} />
-    {mapImageUrl ? <Link url={mapURL || "maps:"}><Image imageUrl={mapImageUrl} resizable scaleToFill frame={{ maxWidth: Infinity, height: 180 }} offset={{ x: 0, y: 0 }} /></Link> : <Link url={mapURL || "maps:"}><VStack frame={{ maxWidth: Infinity, height: 180 }} alignment="leading" padding={12}><Text font="caption" lineLimit={3}>{address}</Text></VStack></Link>}
+    {mapImageUrl ? <Link url={mapURL || "maps:"}><Image imageUrl={mapImageUrl} resizable scaleToFill frame={{ maxWidth: Infinity, height: 180 }} offset={{ x: 0, y: 0 }} /></Link> : <Link url={mapURL || "maps:"}><VStack frame={{ maxWidth: Infinity, height: 180 }} alignment="leading" padding={12}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack></Link>}
   </VStack>
 }
 
