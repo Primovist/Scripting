@@ -1,8 +1,15 @@
 {
-  "contributors" : [
+  "version" : "1.2.0",
+  "intentInputTypes" : [
 
   ],
-  "version" : "1.2.0",
+  "description" : "",
+  "entry" : "index.tsx",
+  "author" : {
+    "name" : "LChen",
+    "email" : "lchen@lchen.ac.cn",
+    "homepage" : "https:\/\/github.com\/Primovist"
+  },
   "localizedNames" : {
     "es" : "",
     "ru" : "",
@@ -14,6 +21,7 @@
     "pt" : "",
     "ja" : ""
   },
+  "color" : "rgba(28, 140, 255,1)",
   "localizedDescriptions" : {
     "ru" : "",
     "es" : "",
@@ -25,21 +33,17 @@
     "it" : "",
     "pt" : ""
   },
-  "color" : "rgba(28, 140, 255,1)",
-  "runInApp" : false,
-  "name" : "12123",
-  "intentInputTypes" : [
+  "contributors" : [
 
   ],
-  "description" : "",
-  "author" : {
-    "homepage" : "https:\/\/github.com\/Primovist",
-    "name" : "LChen",
-    "email" : "lchen@lchen.ac.cn"
-  },
-  "remoteResource" : null,
-  "permissions" : null,
-  "icon" : "car",
   "iconImage" : "https:\/\/encrypted-tbn0.gstatic.com\/images?q=tbn:ANd9GcQTnGDeqcmCeYLDIafm_q3lO07Q0nksHsT7Oq7NFjeOvw&s",
-  "entry" : "index.tsx"
+  "name" : "12123",
+  "icon" : "car",
+  "remoteResource" : {
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/12123",
+    "hash" : "3C8D0926-716C-4066-A465-F1F281565654",
+    "autoUpdateInterval" : null
+  },
+  "permissions" : null,
+  "runInApp" : false
 }
