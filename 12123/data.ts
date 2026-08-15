@@ -11,8 +11,10 @@ export const BOXJS_DEFAULT_DOMAIN = "boxjs.net";
 export const BOXJS_TOKEN_NAME = "wx_12123";
 export const VEHICLES_KEY = "12123.vehicles";
 export const SELECTED_VEHICLE_KEY = "12123.selectedVehicle";
-export const SURGE_API = "http://127.0.0.1:6166";
-export const SURGE_API_KEY = "XZChen";
+export const SURGE_PORT_KEY = "12123.surgePort";
+export const SURGE_PASSWORD_KEY = "12123.surgePassword";
+export const SURGE_DEFAULT_PORT = "6166";
+export const SURGE_DEFAULT_PASSWORD = "";
 export const SURGE_MODULE_NAME = "交管12123";
 
 class TokenExpiredError extends Error {
@@ -22,11 +24,17 @@ class TokenExpiredError extends Error {
   }
 }
 
+function surgeConfig(): { url: string; key: string } {
+  const port = Keychain.get(SURGE_PORT_KEY) || SURGE_DEFAULT_PORT;
+  const key = Keychain.get(SURGE_PASSWORD_KEY) || SURGE_DEFAULT_PASSWORD;
+  return { url: `http://127.0.0.1:${port}`, key };
+}
 async function setSurgeModule(enabled: boolean): Promise<void> {
   try {
-    await fetch(`${SURGE_API}/v1/modules`, {
+    const config = surgeConfig();
+    await fetch(`${config.url}/v1/modules`, {
       method: "POST",
-      headers: { "X-Key": SURGE_API_KEY, "Content-Type": "application/json" },
+      headers: { "X-Key": config.key, "Content-Type": "application/json" },
       body: JSON.stringify({ [SURGE_MODULE_NAME]: enabled }),
       allowInsecureRequest: true,
       timeout: 5,
