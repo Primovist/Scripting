@@ -61,24 +61,33 @@ async function createMapSnapshot(p: any): Promise<string | null> {
   if (!coordinate) return null
   const dir = `${FileManager.appGroupDocumentsDirectory}/BMW Linker`
   const coordinateKey = `${coordinate.latitude.toFixed(6)}_${coordinate.longitude.toFixed(6)}`.replace(/[^0-9_-]/g, "_")
-  const path = `${dir}/vehicle-map-${coordinateKey}.png`
+  const appearance = Device.colorScheme === "dark" ? "dark" : "light"
+  const path = `${dir}/vehicle-map-${appearance}-${coordinateKey}.png`
+  const latestPath = `${dir}/vehicle-map-latest-${appearance}.png`
   await FileManager.createDirectory(dir, true)
-  const snap = await MapSnapshotter.take({
-    // 下半个大组件尺寸；车辆保持在地图中心。
-    size: { width: 340, height: 180 },
-    // 约 30m 级别比例尺；通过组件中的 offset 调整地图位置。
-    region: {
-      center: coordinate,
-      span: { latitudeDelta: 0.0007, longitudeDelta: 0.0007 },
-    },
-    mapStyle: { style: "standard" },
-         annotations: [{ coordinate, tintColor: "#2F80ED", glyph: "car.fill" }],
-  })
-  const base64 = snap.image.toPNGBase64String()
-  if (!base64) return null
-  const data = Data.fromBase64String(base64)
-  if (data) await FileManager.writeAsData(path, data)
-  return `data:image/png;base64,${base64}`
+  try {
+    const snap = await MapSnapshotter.take({
+      size: { width: 340, height: 180 },
+      region: { center: coordinate, span: { latitudeDelta: 0.0007, longitudeDelta: 0.0007 } },
+      mapStyle: { style: "standard" },
+      appearance,
+      annotations: [{ coordinate, tintColor: "#2F80ED", glyph: "car.fill" }],
+    })
+    const base64 = snap.image.toPNGBase64String()
+    const data = base64 ? Data.fromBase64String(base64) : null
+    if (!data) return null
+    await FileManager.writeAsData(path, data)
+    await FileManager.writeAsData(latestPath, data)
+    return `file://${path}`
+  } catch {
+    return null
+  }
+}
+
+async function cachedMapSnapshot(): Promise<string | null> {
+  const appearance = Device.colorScheme === "dark" ? "dark" : "light"
+  const path = `${FileManager.appGroupDocumentsDirectory}/BMW Linker/vehicle-map-latest-${appearance}.png`
+  return await FileManager.exists(path) ? `file://${path}` : null
 }
 
 function Row({ icon, value, width, iconColor, lineLimit = 1, font = 11, widgetURL, textOpacity }: { icon: string; value: string; width?: number; iconColor?: string; lineLimit?: number; font?: number | "caption2"; widgetURL?: string; textOpacity?: number }) {
@@ -208,10 +217,6 @@ function VehicleContent({ data, settings, carImageUrl, compact = false }: { data
   </VStack></Link>
 }
 
-function widgetBackground() {
-  return { light: "#B8DCFF", dark: "#0B2D52" } as any
-}
-
 function LargeTopWidget({ data, settings, carImageUrl }: { data: VehicleData; settings: Settings; carImageUrl: string }) {
   const p: any = data.properties || {}
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
@@ -269,7 +274,7 @@ function SmallWidget({ data, settings, carImageUrl }: { data: VehicleData; setti
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const plate = settings.licensePlate || data.licensePlate || hidden(data.vin)
   const smallStatus = `${isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`
-  return <VStack alignment="center" spacing={3} frame={{ maxWidth: Infinity, maxHeight: Infinity }} padding={8} background={widgetBackground()}>
+  return <VStack alignment="center" spacing={3} frame={{ maxWidth: Infinity, maxHeight: Infinity }} padding={8} widgetBackground={{ style: { light: "#B8DCFF", dark: "#0B2D52" }, shape: "concentricRect" }}>
     <HStack alignment="center" spacing={6} frame={{ maxWidth: Infinity }}>
       <Link url={appleMapsNavigationURL(p) || "maps:"}>
         <Image systemName="location" font="caption2" foregroundStyle="systemBlue" />
@@ -284,7 +289,7 @@ function SmallWidget({ data, settings, carImageUrl }: { data: VehicleData; setti
 }
 
 function MediumWidget({ data, settings, carImageUrl }: { data: VehicleData; settings: Settings; carImageUrl: string }) {
-  return <VStack alignment="leading" padding={{ top: 8, leading: 0, bottom: 0, trailing: 0 }} frame={{ maxWidth: Infinity }} background={widgetBackground()}>
+  return <VStack alignment="leading" padding={{ top: 8, leading: 0, bottom: 0, trailing: 0 }} frame={{ maxWidth: Infinity }} widgetBackground={{ style: { light: "#B8DCFF", dark: "#0B2D52" }, shape: "concentricRect" }}>
     <LargeTopWidget data={data} settings={settings} carImageUrl={carImageUrl} />
   </VStack>
 }
@@ -293,9 +298,10 @@ function LargeWidget({ data, settings, mapImageUrl, carImageUrl }: { data: Vehic
   const p: any = data.properties || {}
   const address = p.location?.address?.formatted || "暂无位置"
   const mapURL = appleMapsNavigationURL(p)
-  return <VStack alignment="leading" spacing={0} padding={0} background={widgetBackground()} frame={{ maxWidth: Infinity, maxHeight: Infinity }}>
+  const mapOpacity = Widget.isTransparentMode ? 0.5 : 1
+  return <VStack alignment="leading" spacing={0} padding={0} widgetBackground={{ style: { light: "#B8DCFF", dark: "#0B2D52" }, shape: "concentricRect" }} frame={{ maxWidth: Infinity, maxHeight: Infinity }}>
     <LargeTopWidget data={data} settings={settings} carImageUrl={carImageUrl} />
-    {mapImageUrl ? <Link url={mapURL || "maps:"}><Image imageUrl={mapImageUrl} resizable scaleToFill frame={{ maxWidth: Infinity, height: 180 }} offset={{ x: 0, y: 0 }} /></Link> : <Link url={mapURL || "maps:"}><VStack frame={{ maxWidth: Infinity, height: 180 }} alignment="leading" padding={12}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack></Link>}
+    {mapImageUrl ? <Link url={mapURL || "maps:"}><Image imageUrl={mapImageUrl} resizable scaleToFill opacity={mapOpacity} frame={{ maxWidth: Infinity, height: 180 }} offset={{ x: 0, y: 0 }} /></Link> : <Link url={mapURL || "maps:"}><VStack frame={{ maxWidth: Infinity, height: 180 }} alignment="leading" padding={12}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack></Link>}
   </VStack>
 }
 
@@ -318,9 +324,13 @@ async function main() {
     if (!data) { Widget.present(<LoadingWidget message="暂无车辆数据" />); return }
     if (Widget.family === "systemSmall" || Widget.family === "accessoryRectangular") Widget.present(<SmallWidget data={data} settings={settings} carImageUrl={await vehicleImageUrl(data, settings)} />)
     else if (Widget.family === "systemLarge" || Widget.family === "systemExtraLarge") {
-      const mapImageUrl = await createMapSnapshot(data.properties || {}).catch(() => null)
       const carImageUrl = await vehicleImageUrl(data, settings)
-      Widget.present(<LargeWidget data={data} settings={settings} mapImageUrl={mapImageUrl} carImageUrl={carImageUrl} />)
+      // 先使用上一张成功地图，避免刷新期间出现透明占位或布局跳动。
+      const previousMapUrl = await cachedMapSnapshot()
+      Widget.present(<LargeWidget data={data} settings={settings} mapImageUrl={previousMapUrl} carImageUrl={carImageUrl} />)
+      createMapSnapshot(data.properties || {}).then(mapImageUrl => {
+        if (mapImageUrl) Widget.reloadAll()
+      }).catch(() => {})
     }
     else Widget.present(<MediumWidget data={data} settings={settings} carImageUrl={await vehicleImageUrl(data, settings)} />)
   } catch (e: any) {

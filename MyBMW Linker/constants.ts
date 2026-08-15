@@ -51,6 +51,7 @@ export type Settings = {
   customVehicleImage?: string
   customLogoImage?: string
   showSignInIcon?: boolean
+  transparentWidget?: boolean
   showTireFuelTrend?: boolean
   showJoyCoin?: boolean
   totalFuelLiters?: number
@@ -70,6 +71,7 @@ export type Settings = {
 
 export const defaultSettings: Required<Omit<Settings, "phone" | "vin" | "customName" | "customVehicleImage" | "customLogoImage" | "licensePlate">> = {
   showSignInIcon: true,
+  transparentWidget: false,
   showTireFuelTrend: true,
   showJoyCoin: false,
   totalFuelLiters: 0,

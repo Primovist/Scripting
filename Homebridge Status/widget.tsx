@@ -272,7 +272,7 @@ export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
       spacing={isSmall ? 6 : 7}
       padding={{ top: 12, bottom: 12, leading: 13, trailing: 13 }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-      background={purple}
+      widgetBackground={{ style: purple, shape: "concentricRect" }}
     >
       <HStack spacing={5} frame={{ maxWidth: "infinity", alignment: "leading" }}>
         <Image

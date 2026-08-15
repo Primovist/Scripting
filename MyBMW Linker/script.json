@@ -1,49 +1,49 @@
 {
-  "localizedDescriptions" : {
-    "it" : "",
-    "en" : "",
-    "zh" : "My BMW 车辆状态面板与小组件。",
-    "pt" : "",
-    "de" : "",
-    "fr" : "",
-    "ja" : "",
-    "ru" : "",
-    "es" : ""
-  },
   "contributors" : [
 
   ],
-  "description" : "My BMW vehicle status dashboard and widget.",
-  "remoteResource" : {
-    "hash" : "9b8ac672b28f9298daca5878ae6ec7ed",
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/MyBMW%20Linker",
-    "autoUpdateInterval" : 43200
-  },
-  "author" : {
-    "email" : "lchen@lchen.ac.cn",
-    "homepage" : "https:\/\/github.com\/Primovist",
-    "name" : "LChen"
-  },
   "runInApp" : true,
-  "version" : "1.0.1",
-  "iconImage" : "https:\/\/play-lh.googleusercontent.com\/06jX6wWF-2ebFDrLvoCKzRYYxmBNA3UNdSb20_2EmfoN9juoM-57HV35PzcyQPGFiuqAiur31XAA7EdsEj7oGw=w480-h960",
-  "permissions" : null,
-  "color" : "#0066B1",
+  "entry" : "index.tsx",
   "name" : "MyBMW Linker",
+  "version" : "1.0.2",
+  "color" : "#0066B1",
   "intentInputTypes" : [
 
   ],
-  "entry" : "index.tsx",
-  "localizedNames" : {
-    "de" : "",
-    "pt" : "",
-    "zh" : "MyBMW Linker",
-    "ja" : "",
+  "localizedDescriptions" : {
     "fr" : "",
     "it" : "",
-    "ru" : "",
     "es" : "",
+    "pt" : "",
+    "zh" : "My BMW 车辆状态面板与小组件。",
+    "de" : "",
+    "ja" : "",
+    "en" : "",
+    "ru" : ""
+  },
+  "localizedNames" : {
+    "it" : "",
+    "ja" : "",
+    "pt" : "",
+    "es" : "",
+    "zh" : "MyBMW Linker",
+    "fr" : "",
+    "ru" : "",
+    "de" : "",
     "en" : ""
   },
-  "icon" : "car.fill"
+  "permissions" : null,
+  "iconImage" : "https:\/\/play-lh.googleusercontent.com\/06jX6wWF-2ebFDrLvoCKzRYYxmBNA3UNdSb20_2EmfoN9juoM-57HV35PzcyQPGFiuqAiur31XAA7EdsEj7oGw=w480-h960",
+  "icon" : "car.fill",
+  "description" : "My BMW vehicle status dashboard and widget.",
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/MyBMW%20Linker",
+    "hash" : "7a9952e0961b393b87dae5e34eff7b47"
+  },
+  "author" : {
+    "name" : "LChen",
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "email" : "lchen@lchen.ac.cn"
+  }
 }
