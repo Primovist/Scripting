@@ -1,10 +1,15 @@
-import { Canvas, HStack, Image, RoundedRectangle, Spacer, Text, VStack, Widget, ZStack } from "scripting";
+import { Canvas, Color, HStack, Image, RoundedRectangle, Spacer, Text, VStack, Widget, ZStack } from "scripting";
 import { ALIPAY_URL, getRefreshMinutes, loadWidgetData, type WidgetData } from "./data";
 
 const BLUE = "#102d83";
 const WHITE = "#ffffff";
 
 type Content = "V" | "L";
+
+function transparentFill(): Color {
+  return Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground ? "rgba(0,0,0,0)" : BLUE;
+}
+
 
 function contentParameter(): Content | null {
   const value = (Widget.parameter ?? "").trim().toUpperCase();
@@ -17,7 +22,7 @@ function Card({ title, icon, items, large = false }: { title: string; icon: stri
   const borderWidth = large ? 4 : 2;
   return (
     <ZStack alignment="center" padding={large ? 6 : 3} frame={{ maxWidth: "infinity", maxHeight: "infinity", minHeight: large ? 280 : 140 }}>
-      <RoundedRectangle cornerRadius={large ? 24 : 14} fill={BLUE} stroke={{ shapeStyle: WHITE, strokeStyle: { lineWidth: borderWidth } }} />
+      <RoundedRectangle cornerRadius={large ? 24 : 14} fill={transparentFill()} stroke={{ shapeStyle: WHITE, strokeStyle: { lineWidth: borderWidth } }} />
       <VStack alignment="leading" spacing={large ? 14 : 8} padding={large ? 20 : 12}>
         <HStack alignment="center" spacing={large ? 12 : 7}>
           <Image systemName={icon} foregroundStyle={WHITE} frame={{ width: large ? 54 : 38, height: large ? 54 : 38 }} />
@@ -50,7 +55,7 @@ function ExpiredCard({ title, icon }: { title: string; icon: string }) {
 function TokenExpiredWidget({ data }: { data: WidgetData }) {
   const content = contentParameter();
   return (
-    <VStack alignment="center" spacing={6} padding={6} background={BLUE} widgetURL={ALIPAY_URL}>
+    <VStack alignment="center" spacing={6} padding={6} background={transparentFill()} widgetURL={ALIPAY_URL}>
       {Widget.family === "systemMedium" || Widget.family === "systemExtraLarge" ? (
         <DualCardLayout data={data} large={Widget.family === "systemExtraLarge"} />
       ) : Widget.family === "systemLarge" ? (
@@ -66,7 +71,7 @@ function TokenExpiredWidget({ data }: { data: WidgetData }) {
 
 function ParameterPromptWidget() {
   return (
-    <VStack alignment="center" spacing={8} padding={12} background={BLUE}>
+    <VStack alignment="center" spacing={8} padding={12} background={transparentFill()}>
       <Card title="交管 12123" icon="info.circle.fill" items={[["提示", "请设置参数"], ["参数", "V：车辆信息"], ["参数", "L：驾照信息"]]} />
     </VStack>
   );
@@ -76,7 +81,7 @@ function SmallWidget({ data }: { data: WidgetData }) {
   const content = contentParameter();
   if (!content) return <ParameterPromptWidget />;
   return (
-    <VStack alignment="center" spacing={8} padding={12} background={BLUE}>
+    <VStack alignment="center" spacing={8} padding={12} background={transparentFill()}>
       {content === "L" ? <LicenseCard data={data} /> : <VehicleCard data={data} />}
       {data.error ? <Text font="caption" foregroundStyle={WHITE}>{data.error}</Text> : null}
     </VStack>
@@ -85,7 +90,7 @@ function SmallWidget({ data }: { data: WidgetData }) {
 
 function LargeWidget({ data }: { data: WidgetData }) {
   return (
-    <VStack alignment="center" spacing={10} padding={12} background={BLUE}>
+    <VStack alignment="center" spacing={10} padding={12} background={transparentFill()}>
       <VehicleCard data={data} />
       <LicenseCard data={data} />
     </VStack>
@@ -94,7 +99,7 @@ function LargeWidget({ data }: { data: WidgetData }) {
 
 function DualCardLayout({ data, large = false, scale = 1 }: { data: WidgetData; large?: boolean; scale?: number | { x: number; y: number } }) {
   return (
-    <VStack alignment="center" spacing={large ? 12 : 6} padding={large ? 12 : 6} background={BLUE} scaleEffect={scale}>
+    <VStack alignment="center" spacing={large ? 12 : 6} padding={large ? 12 : 6} background={transparentFill()} scaleEffect={scale}>
       <HStack spacing={8} alignment="center" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         <VehicleCard data={data} large={large} />
         <LicenseCard data={data} large={large} />

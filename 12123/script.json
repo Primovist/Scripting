@@ -1,49 +1,49 @@
 {
-  "version" : "1.2.1",
+  "version" : "1.2.2",
+  "entry" : "index.tsx",
+  "contributors" : [
+
+  ],
+  "runInApp" : false,
   "intentInputTypes" : [
 
   ],
   "description" : "",
-  "entry" : "index.tsx",
-  "author" : {
-    "name" : "LChen",
-    "email" : "lchen@lchen.ac.cn",
-    "homepage" : "https:\/\/github.com\/Primovist"
-  },
-  "localizedNames" : {
-    "es" : "",
-    "ru" : "",
-    "fr" : "",
-    "en" : "",
-    "zh" : "",
-    "de" : "",
-    "it" : "",
-    "pt" : "",
-    "ja" : ""
-  },
-  "color" : "rgba(28, 140, 255,1)",
-  "localizedDescriptions" : {
-    "ru" : "",
-    "es" : "",
-    "zh" : "",
-    "ja" : "",
-    "en" : "",
-    "de" : "",
-    "fr" : "",
-    "it" : "",
-    "pt" : ""
-  },
-  "contributors" : [
-
-  ],
-  "iconImage" : "https:\/\/encrypted-tbn0.gstatic.com\/images?q=tbn:ANd9GcQTnGDeqcmCeYLDIafm_q3lO07Q0nksHsT7Oq7NFjeOvw&s",
-  "name" : "12123",
-  "icon" : "car",
   "remoteResource" : {
     "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/12123",
-    "hash" : "3C8D0926-716C-4066-A465-F1F281565654",
-    "autoUpdateInterval" : null
+    "autoUpdateInterval" : null,
+    "hash" : "3C8D0926-716C-4066-A465-F1F281565654"
+  },
+  "localizedNames" : {
+    "fr" : "",
+    "ru" : "",
+    "ja" : "",
+    "zh" : "",
+    "es" : "",
+    "en" : "",
+    "it" : "",
+    "pt" : "",
+    "de" : ""
+  },
+  "localizedDescriptions" : {
+    "pt" : "",
+    "zh" : "",
+    "it" : "",
+    "de" : "",
+    "fr" : "",
+    "es" : "",
+    "ru" : "",
+    "ja" : "",
+    "en" : ""
   },
   "permissions" : null,
-  "runInApp" : false
+  "icon" : "car",
+  "author" : {
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "email" : "lchen@lchen.ac.cn",
+    "name" : "LChen"
+  },
+  "iconImage" : "https:\/\/encrypted-tbn0.gstatic.com\/images?q=tbn:ANd9GcQTnGDeqcmCeYLDIafm_q3lO07Q0nksHsT7Oq7NFjeOvw&s",
+  "name" : "12123",
+  "color" : "rgba(28, 140, 255,1)"
 }
