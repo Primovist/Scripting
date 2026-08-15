@@ -4,13 +4,13 @@ import { ALIPAY_URL, getRefreshMinutes, loadWidgetData, type WidgetData } from "
 const BLUE = "#102d83";
 const WHITE = "#ffffff";
 
-type Content = "V" | "L" | "ALL";
+type Content = "V" | "L";
 
-function contentParameter(): Content {
+function contentParameter(): Content | null {
   const value = (Widget.parameter ?? "").trim().toUpperCase();
   if (value === "V") return "V";
   if (value === "L") return "L";
-  return "ALL";
+  return null;
 }
 
 function Card({ title, icon, items, large = false }: { title: string; icon: string; items: string[][]; large?: boolean }) {
@@ -64,8 +64,17 @@ function TokenExpiredWidget({ data }: { data: WidgetData }) {
   );
 }
 
+function ParameterPromptWidget() {
+  return (
+    <VStack alignment="center" spacing={8} padding={12} background={BLUE}>
+      <Card title="交管 12123" icon="info.circle.fill" items={[["提示", "请设置参数"], ["参数", "V：车辆信息"], ["参数", "L：驾照信息"]]} />
+    </VStack>
+  );
+}
+
 function SmallWidget({ data }: { data: WidgetData }) {
   const content = contentParameter();
+  if (!content) return <ParameterPromptWidget />;
   return (
     <VStack alignment="center" spacing={8} padding={12} background={BLUE}>
       {content === "L" ? <LicenseCard data={data} /> : <VehicleCard data={data} />}
