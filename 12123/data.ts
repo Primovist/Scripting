@@ -183,8 +183,9 @@ function normalizeVehicles(data: any): Vehicle[] {
 }
 function formatDateValue(value: unknown): string {
   if (typeof value !== "string" || !value) return "—";
-  const parts = value.split("-");
-  return parts.length >= 3 ? `${parts[0]}-${parts[1]}-${parts[2]}` : value;
+  const dateOnly = value.trim().split(/[T\s]/)[0];
+  const parts = dateOnly.split("-");
+  return parts.length >= 3 ? `${parts[0]}-${parts[1]}-${parts[2]}` : dateOnly;
 }
 
 function firstDate(source: any, keys: string[]): string {
@@ -248,7 +249,7 @@ export async function loadWidgetData(): Promise<WidgetData> {
       licenseTitle: `驾驶证${license.allowToDrive ? ` ${license.allowToDrive}` : ""}`,
       licenseStatus: "正常",
       cumulativePoint: String(license.cumulativePoint ?? 0),
-      resetDate: reaccDate.length >= 3 ? `${reaccDate[1]}-${reaccDate[2]}` : "—",
+      resetDate: formatDateValue(license.reaccDate),
       licenseChangeDate: firstDate(license, ["validityEnd"]),
     };
     Keychain.set(DATA_KEY, JSON.stringify(data));

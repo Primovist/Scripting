@@ -105,15 +105,17 @@ function tireRows(p: any, showTrend = false): Array<{ side: "left" | "right"; va
   const read = (key: string, side: "left" | "right") => {
     const status = tire?.[key]?.status
     const pressure = status?.currentPressure
-    if (!pressure) return null
+    if (pressure === undefined || pressure === null || pressure === "") return null
+    const pressureNumber = Number(pressure)
+    if (!Number.isFinite(pressureNumber)) return null
     let suffix = ""
     if (showTrend && status?.targetPressure) {
-      const diff = pressure - status.targetPressure
+      const diff = pressureNumber - Number(status.targetPressure)
       suffix = diff > 0 ? " ↑" : diff < 0 ? " ↓" : " ↔"
     } else if (!showTrend) {
       suffix = " Bar"
     }
-    return { side, value: `${(pressure / 100).toFixed(1)}${suffix}` }
+    return { side, value: `${(pressureNumber / 100).toFixed(1)}${suffix}` }
   }
   return [
     read("frontLeft", "left"),
@@ -177,12 +179,22 @@ function doorWindowStatus(p: any): { ok: boolean; text: string; icon: string } {
   return { ok: false, text: "门窗未关闭", icon: "exclamationmark.shield" }
 }
 
+function isVehicleCharging(p: any): boolean {
+  const charging = p?.electricChargingState
+  if (!charging) return false
+  if (charging.isChargerConnected === true || charging.isChargerConnected === "true") return true
+  const state = String(charging.chargingState || charging.state || charging.status || "").toUpperCase()
+  return ["CHARGING", "IN_PROGRESS", "ACTIVE"].includes(state)
+}
+
 function VehicleContent({ data, settings, carImageUrl, compact = false }: { data: VehicleData; settings: Settings; carImageUrl: string; compact?: boolean }) {
   const p: any = data.properties || {}
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const doorStatus = doorWindowStatus(p)
+  const charging = isVehicleCharging(p)
   const controlStatus = controlMessages(p)
   const width = compact ? 112 : 132
+  const displayDoorStatusText = doorStatus.text
   const imageWidth = compact ? 112 : 144
   const imageHeight = compact ? 70 : 90
   const titleFont = compact ? 15 : 20
@@ -208,11 +220,13 @@ function VehicleContent({ data, settings, carImageUrl, compact = false }: { data
         <Image imageUrl={carImageUrl} resizable scaleToFit frame={{ width: imageWidth, height: imageHeight }} />
       </HStack>
     </ZStack>
-    <HStack spacing={2} frame={{ width }} offset={compact ? { x: 0, y: -2 } : { x: 0, y: -6 }}>
-      <Spacer />
+    <HStack alignment="center" spacing={4} frame={{ width }} offset={compact ? { x: 0, y: -2 } : { x: 0, y: -6 }}>
       <Image systemName={doorStatus.icon} font="caption2" foregroundStyle={doorStatus.ok ? "systemGreen" : "systemOrange"} />
-      <Text font="caption2" lineLimit={1} foregroundStyle={{ light: "#000000", dark: "#FFFFFF" }} opacity={0.5}>{doorStatus.text}</Text>
-      <Spacer />
+      <Text font="caption2" foregroundStyle={{ light: "#000000", dark: "#FFFFFF" }} opacity={0.5}>{displayDoorStatusText}</Text>
+      {charging ? <>
+        <Image systemName="bolt.circle" font="caption2" foregroundStyle="systemGreen" />
+        <Text font="caption2" foregroundStyle={{ light: "#000000", dark: "#FFFFFF" }} opacity={0.5}>充电中</Text>
+      </> : null}
     </HStack>
   </VStack></Link>
 }
