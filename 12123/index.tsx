@@ -154,7 +154,20 @@ function SettingsPage() {
   );
 }
 
+async function runTokenRefreshFlow() {
+  await Safari.openURL(ALIPAY_URL);
+  await new Promise<void>(resolve => setTimeout(resolve, 20_000));
+  await refreshTokenFromBoxJS();
+  await loadWidgetData();
+  Widget.reloadAll();
+  Script.exit();
+}
+
 async function main() {
+  if (Script.queryParameters.action === "refreshToken") {
+    await runTokenRefreshFlow();
+    return;
+  }
   await Navigation.present(<SettingsPage />);
   Script.exit();
 }

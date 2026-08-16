@@ -3,6 +3,7 @@ import { ALIPAY_URL, getRefreshMinutes, loadWidgetData, type WidgetData } from "
 
 const BLUE = "#102d83";
 const WHITE = "#ffffff";
+const REFRESH_TOKEN_URL = "scripting://run_single/12123?action=refreshToken";
 
 type Content = "V" | "L";
 
@@ -55,7 +56,7 @@ function ExpiredCard({ title, icon }: { title: string; icon: string }) {
 function TokenExpiredWidget({ data }: { data: WidgetData }) {
   const content = contentParameter();
   return (
-    <VStack alignment="center" spacing={6} padding={6} background={transparentFill()} widgetURL={ALIPAY_URL}>
+    <VStack alignment="center" spacing={6} padding={6} background={transparentFill()} widgetURL={REFRESH_TOKEN_URL}>
       {Widget.family === "systemMedium" || Widget.family === "systemExtraLarge" ? (
         <DualCardLayout data={data} large={Widget.family === "systemExtraLarge"} />
       ) : Widget.family === "systemLarge" ? (

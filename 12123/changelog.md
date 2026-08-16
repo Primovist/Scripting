@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.3.0 — 2026-08-16
+
+### 新增
+
+- Token 失效卡片点击后改为进入 Scripting 内部刷新流程，不再直接跳转支付宝。
+- 增加 `scripting://run_single/12123?action=refreshToken` 刷新入口。
+- 自动刷新流程会打开支付宝交管 12123，等待 20 秒后读取 BoxJS 中的 `wx_12123`。
+- Token 更新后自动重新请求 12123 接口，并调用 `Widget.reloadAll()` 刷新所有小组件。
+- Token 验证成功后自动关闭 Surge“交管12123”模块。
+
+### 修复
+
+- 修复透明背景组件支持，透明、模拟透明和模糊背景模式下不再绘制不透明蓝色底色。
+- 修复透明背景模式下白色文字、图标、卡片边框的显示。
+- 修复 Token 失效点击入口与 Scripting 内部流程的衔接。
+
+### 技术
+
+- 使用 Scripting URL Scheme、`Script.queryParameters`、`Widget.reloadAll` 和延时任务完成刷新流程。
+- 保留普通背景模式和透明背景模式的差异化绘制。
+- 已通过 TypeScript 类型检查。
+
+---
+
 ## 1.2.2 — 2026-08-15
 
 ### 修复
