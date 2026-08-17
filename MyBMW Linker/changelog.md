@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0] - 2026-08-17
+
+### ⚠️ 数据结构更新（重要）
+
+- 本版本将缓存目录从 `FileManager.appGroupDocumentsDirectory/BMW Linker/` 迁移为 `FileManager.appGroupDocumentsDirectory/MyBMW Linker/`。
+- 由于缓存目录和相关数据结构发生变化，升级前请删除旧版本数据，避免旧缓存与新版本混用导致地图或车辆图片显示异常。
+- 建议删除旧的 `BMW Linker` 数据目录后，再运行本版本并重新登录/刷新车辆数据。
+- 删除旧数据前请确认已备份仍需保留的账号配置或登录信息。
+
+### 缓存与小组件
+
+- 地图截图、亮色/暗色地图缓存和车辆状态图片统一写入 `MyBMW Linker` 目录。
+- 新版本不再使用旧的 `BMW Linker` 缓存目录。
+- 完成缓存路径更新后的 TypeScript 诊断，当前项目无类型诊断错误。
+
 ## [1.0.3] - 2026-08-16
 
 ### 车辆状态与小组件

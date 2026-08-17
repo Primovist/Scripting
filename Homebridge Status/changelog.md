@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] - 2026-08-17
+
+### Added
+
+- 当 Homebridge、插件或 Node.js 有可用升级时，点按组件可打开连接设置中配置的 Homebridge 地址。
+
 ## [1.0.1] - 2026-08-15
 
 ### Added

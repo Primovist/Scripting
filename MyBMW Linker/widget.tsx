@@ -59,7 +59,7 @@ function appleMapsNavigationURL(p: any): string | null {
 async function createMapSnapshot(p: any): Promise<string | null> {
   const coordinate = vehicleCoordinate(p)
   if (!coordinate) return null
-  const dir = `${FileManager.appGroupDocumentsDirectory}/BMW Linker`
+  const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
   const coordinateKey = `${coordinate.latitude.toFixed(6)}_${coordinate.longitude.toFixed(6)}`.replace(/[^0-9_-]/g, "_")
   const appearance = Device.colorScheme === "dark" ? "dark" : "light"
   const path = `${dir}/vehicle-map-${appearance}-${coordinateKey}.png`
@@ -86,7 +86,7 @@ async function createMapSnapshot(p: any): Promise<string | null> {
 
 async function cachedMapSnapshot(): Promise<string | null> {
   const appearance = Device.colorScheme === "dark" ? "dark" : "light"
-  const path = `${FileManager.appGroupDocumentsDirectory}/BMW Linker/vehicle-map-latest-${appearance}.png`
+  const path = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker/vehicle-map-latest-${appearance}.png`
   return await FileManager.exists(path) ? `file://${path}` : null
 }
 
@@ -147,7 +147,7 @@ function carStatusText(p: any): string {
 
 async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<string> {
   if (settings.customVehicleImage) return settings.customVehicleImage
-  const dir = `${FileManager.appGroupDocumentsDirectory}/BMW Linker`
+  const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
   const path = `${dir}/vehicle-status.png`
   await FileManager.createDirectory(dir, true)
   // 地图标记样式变更后重新生成，避免继续读取旧的红色大标记缓存。

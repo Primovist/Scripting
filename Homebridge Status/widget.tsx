@@ -260,6 +260,7 @@ function MiniChart({ values, color, label, icon, current, suffix = "%", extra, e
 
 export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
   const isSmall = Widget.family === "systemSmall"
+  const hasUpgrade = snapshot.homebridgeUtd === false || snapshot.pluginsUtd === false || snapshot.nodeUtd === false
   const purple = gradient("linear", {
     colors: ["#421367", "#7a04d4"],
     startPoint: "topLeading",
@@ -273,6 +274,7 @@ export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
       padding={{ top: 12, bottom: 12, leading: 13, trailing: 13 }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
       widgetBackground={{ style: purple, shape: "concentricRect" }}
+      widgetURL={hasUpgrade ? config.baseUrl : undefined}
     >
       <HStack spacing={5} frame={{ maxWidth: "infinity", alignment: "leading" }}>
         <Image
