@@ -181,11 +181,11 @@ function StatusGrid({ snapshot, compact = false }: { snapshot: Snapshot; compact
   return (
     <VStack alignment="leading" spacing={compact ? 2 : 4}>
       <HStack spacing={5}>
-        <StatusLine value={snapshot.running} label="运行状态" kind="health" compact />
+        <StatusLine value={snapshot.running} label="运行状态" kind="health" compact offset={{ x: -18, y: 0 }} />
         <StatusLine value={snapshot.homebridgeUtd} label="Homebridge更新" kind="update" compact />
       </HStack>
       <HStack spacing={5}>
-        <StatusLine value={snapshot.pluginsUtd} label="插件更新" kind="update" compact />
+        <StatusLine value={snapshot.pluginsUtd} label="插件更新" kind="update" compact offset={{ x: -18, y: 0 }} />
         <StatusLine value={snapshot.nodeUtd} label="Node.js更新" kind="update" compact />
       </HStack>
     </VStack>
