@@ -16,7 +16,7 @@
   "name" : "Homebridge Status",
   "color" : "#5E2CA5",
   "icon" : "house.fill",
-  "version" : "1.1.0",
+  "version" : "1.1.1",
   "runInApp" : false,
   "remoteResource" : {
     "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/Homebridge Status",
