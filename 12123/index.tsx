@@ -1,11 +1,12 @@
 import { Button, HStack, List, Navigation, NavigationStack, Picker, Script, Spacer, Text, TextField, VStack, Widget, useState } from "scripting";
-import { ALIPAY_URL, BOXJS_DEFAULT_DOMAIN, BOXJS_DOMAIN_KEY, getRefreshMinutes, loadVehicles, refreshTokenFromBoxJS, REFRESH_MINUTES_KEY, SURGE_DEFAULT_PASSWORD, SURGE_DEFAULT_PORT, SURGE_PASSWORD_KEY, SURGE_PORT_KEY, TOKEN_KEY, getSelectedVehicleId, saveSelectedVehicle, saveToken, type Vehicle, loadWidgetData } from "./data";
+import { ALIPAY_URL, BOXJS_DEFAULT_DOMAIN, BOXJS_DOMAIN_KEY, getRefreshMinutes, loadVehicles, refreshTokenFromBoxJS, REFRESH_MINUTES_KEY, SURGE_DEFAULT_PASSWORD, SURGE_DEFAULT_PORT, SURGE_DEFAULT_PROTOCOL, SURGE_PASSWORD_KEY, SURGE_PORT_KEY, SURGE_PROTOCOL_KEY, TOKEN_KEY, getSelectedVehicleId, saveSelectedVehicle, saveToken, type Vehicle, loadWidgetData } from "./data";
 
 function SettingsPage() {
   const dismiss = Navigation.useDismiss();
   const [token, setToken] = useState(Keychain.get(TOKEN_KEY) ?? "");
   const [refresh, setRefresh] = useState(String(getRefreshMinutes()));
   const [boxjsDomain, setBoxjsDomain] = useState(Keychain.get(BOXJS_DOMAIN_KEY) ?? BOXJS_DEFAULT_DOMAIN);
+  const [surgeProtocol, setSurgeProtocol] = useState(Keychain.get(SURGE_PROTOCOL_KEY) ?? SURGE_DEFAULT_PROTOCOL);
   const [surgePort, setSurgePort] = useState(Keychain.get(SURGE_PORT_KEY) ?? SURGE_DEFAULT_PORT);
   const [surgePassword, setSurgePassword] = useState(Keychain.get(SURGE_PASSWORD_KEY) ?? SURGE_DEFAULT_PASSWORD);
   const [vehicles, setVehicles] = useState<Vehicle[]>(loadVehicles());
@@ -35,6 +36,7 @@ function SettingsPage() {
   const saveAll = () => {
     saveToken(token);
     Keychain.set(BOXJS_DOMAIN_KEY, boxjsDomain.trim() || BOXJS_DEFAULT_DOMAIN);
+    Keychain.set(SURGE_PROTOCOL_KEY, surgeProtocol === "https" ? "https" : "http");
     Keychain.set(SURGE_PORT_KEY, surgePort.trim() || SURGE_DEFAULT_PORT);
     Keychain.set(SURGE_PASSWORD_KEY, surgePassword.trim() || SURGE_DEFAULT_PASSWORD);
     const minutes = Number(refresh);
@@ -101,6 +103,11 @@ function SettingsPage() {
           <Text font="headline" fontWeight="bold">Surge HTTP API</Text>
           <Text font="caption" foregroundStyle="#666666">用于 Token 失效时开启模块、请求成功后关闭模块。地址固定为本机 127.0.0.1。</Text>
           <TextField title="HTTP API 端口" prompt="例如 6166" value={surgePort} onChanged={setSurgePort} />
+          <Picker title="协议" value={surgeProtocol} onChanged={setSurgeProtocol} pickerStyle="menu">
+            <Text tag="http">HTTP</Text>
+            <Text tag="https">HTTPS</Text>
+          </Picker>
+
           <TextField title="HTTP API 密码" prompt="Surge http-api 密码" value={surgePassword} onChanged={setSurgePassword} />
         </VStack>
         <VStack alignment="leading" spacing={8}>
