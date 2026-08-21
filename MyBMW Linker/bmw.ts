@@ -7,8 +7,9 @@ import {
   REMOTE_ROOT,
   type Settings,
   type VehicleData,
+  type VehicleSnapshot,
 } from "./constants"
-import { formatDate, formatUserMobile, keyGet, keyRemove, keySave, md5Hex, nowSeconds, notify, requestJSON, requestText, today, uuidv4 } from "./storage"
+import { formatUserMobile, keyGet, keyRemove, keySave, md5Hex, nowSeconds, requestJSON, requestText, uuidv4 } from "./storage"
 
 type CaptchaHeaders = Record<string, string>
 
@@ -16,26 +17,88 @@ function appHeaders(extra: Record<string, string> = {}): Record<string, string> 
   return { ...BMW_HEADERS, ...extra }
 }
 
-function findJoyCoin(value: any, depth = 0): any {
-  if (value === null || value === undefined || depth > 8) return undefined
-  if (typeof value === "string") {
-    const text = value.trim()
-    if (text.startsWith("{") || text.startsWith("[")) {
-      try { return findJoyCoin(JSON.parse(text), depth + 1) } catch { return undefined }
-    }
-    return text !== "" && Number.isFinite(Number(text)) ? text : undefined
-  }
-  if (typeof value !== "object") return undefined
-  for (const key of ["joyCoin", "joycoin", "joy_coin", "joyCoinNum", "totalJoyCoin", "joyCoinCount"]) {
-    if (value[key] !== undefined && value[key] !== null && (typeof value[key] === "number" || typeof value[key] === "string")) return value[key]
-  }
-  for (const key of Object.keys(value)) {
-    const found = findJoyCoin(value[key], depth + 1)
-    if (found !== undefined) return found
-  }
+function vehicleTypeFromProfile(profile?: Record<string, any> | null): "BEV" | "PHEV" | "ICE" | undefined {
+  const dt = typeof profile?.driveTrain === "string" ? profile.driveTrain.trim().toUpperCase() : ""
+  if (/HYBRID|PHEV/.test(dt)) return "PHEV"
+  if (/ELECTRIC|BEV/.test(dt)) return "BEV"
+  if (/COMBUSTION|^CO$|FUEL|ICE|DIESEL|GASOLINE|PETROL/.test(dt)) return "ICE"
   return undefined
 }
 
+function finiteNumber(value: any): number | undefined {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : undefined
+}
+
+function compactObject(source: any, keys: string[]): any {
+  const result: any = {}
+  for (const key of keys) if (source?.[key] !== undefined && source?.[key] !== null) result[key] = source[key]
+  return result
+}
+
+function compactVehicleState(state: any): any {
+  const fuel = compactObject(state?.combustionFuelLevel, ["remainingFuelLiters", "remainingFuelPercent", "range"])
+  const electric = compactObject(state?.electricChargingState, ["chargingLevelPercent", "range", "isChargerConnected", "chargingStatus", "chargingState", "state", "status"])
+  const doors = compactObject(state?.doorsState, ["combinedSecurityState", "combinedState", "hood", "trunk", "leftFront", "rightFront", "leftRear", "rightRear"])
+  const windows = compactObject(state?.windowsState, ["combinedState", "leftFront", "rightFront", "leftRear", "rightRear"])
+  const roof = compactObject(state?.roofState, ["roofState"])
+  const tires: any = {}
+  for (const wheel of ["frontLeft", "frontRight", "rearLeft", "rearRight"]) {
+    const status = compactObject(state?.tireState?.[wheel]?.status, ["currentPressure", "targetPressure"])
+    if (Object.keys(status).length) tires[wheel] = { status }
+  }
+  const location = state?.location
+  const coordinates = compactObject(location?.coordinates, ["latitude", "longitude"])
+  const address = compactObject(location?.address, ["formatted"])
+  const checks = Array.isArray(state?.checkControlMessages) ? state.checkControlMessages.map((item: any) => compactObject(item, ["id", "type", "name", "title", "text", "localizedText", "description", "message", "severity"])) : []
+  return {
+    ...(state?.vehicleType !== undefined ? { vehicleType: state.vehicleType } : {}),
+    ...(state?.currentMileage !== undefined ? { currentMileage: state.currentMileage } : {}),
+    ...(state?.lastUpdatedAt !== undefined ? { lastUpdatedAt: state.lastUpdatedAt } : {}),
+    combustionFuelLevel: fuel,
+    electricChargingState: electric,
+    doorsState: doors,
+    windowsState: windows,
+    roofState: roof,
+    tireState: tires,
+    checkControlMessages: checks,
+    location: { coordinates, address, ...(location?.lastUpdatedAt !== undefined ? { lastUpdatedAt: location.lastUpdatedAt } : {}) },
+  }
+}
+
+function knownState(value: any): string {
+  const state = String(value || "").trim().toUpperCase()
+  if (state === "OPEN") return "open"
+  if (state === "CLOSED") return "closed"
+  return "unknown"
+}
+function normalizeVehicleSnapshot(vehicle: VehicleData, profileVehicleType?: "BEV" | "PHEV" | "ICE"): VehicleSnapshot {
+  const p: any = vehicle.properties || {}
+  const electric = p.electricChargingState || {}
+  const fuel = p.combustionFuelLevel || {}
+  const type = profileVehicleType === "BEV" ? "electric" : profileVehicleType === "PHEV" ? "hybrid" : profileVehicleType === "ICE" ? "fuel" : "unknown"
+  const batteryPercent = finiteNumber(electric.chargingLevelPercent)
+  const fuelPercent = finiteNumber(fuel.remainingFuelPercent)
+  const levelPercent = type === "electric" ? batteryPercent : type === "hybrid" ? (batteryPercent ?? fuelPercent) : fuelPercent
+  const chargingStatus = String(electric.chargingStatus || electric.chargingState || electric.state || "").toUpperCase()
+  const charging = electric.isChargerConnected === true || electric.isChargerConnected === "true" || ["CHARGING", "IN_PROGRESS", "ACTIVE"].includes(chargingStatus)
+  const complete = ["FINISHED", "FULLY_CHARGED", "CHARGING_FULLY_CHARGED"].includes(chargingStatus)
+  const doors = p.doorsState || {}
+  const windows = p.windowsState || {}
+  const roof = p.roofState || {}
+  const rawChecks = Array.isArray(p.checkControlMessages) ? p.checkControlMessages : []
+  const checks = rawChecks.filter((item: any) => ["HIGH", "HIGHEST", "CRITICAL"].includes(String(item?.severity || "").toUpperCase())).map((item: any, index: number) => ({ id: String(item?.id || item?.type || `bmw-check-${index}`), severity: "critical" as const, title: String(item?.name || item?.title || item?.message || item?.type || "车辆告警"), detail: String(item?.description || item?.message || item?.name || "") || undefined }))
+  const coordinates = p.location?.coordinates
+  const latitude = finiteNumber(coordinates?.latitude)
+  const longitude = finiteNumber(coordinates?.longitude)
+  return {
+    energy: { type, levelPercent, fuelPercent, batteryPercent, remainingLiters: finiteNumber(fuel.remainingFuelLiters), rangeKm: finiteNumber(electric.range ?? fuel.range) },
+    access: { lock: doors.combinedSecurityState === "LOCKED" ? "locked" : doors.combinedSecurityState === "UNLOCKED" ? "unlocked" : "unknown", doors: knownState(doors.combinedState), windows: knownState(windows.combinedState), roof: knownState(roof.roofState), hood: knownState(doors.hood), trunk: knownState(doors.trunk), doorStates: { leftFront: knownState(doors.leftFront), rightFront: knownState(doors.rightFront), leftRear: knownState(doors.leftRear), rightRear: knownState(doors.rightRear) }, windowStates: { leftFront: knownState(windows.leftFront), rightFront: knownState(windows.rightFront), leftRear: knownState(windows.leftRear), rightRear: knownState(windows.rightRear) } },
+    checks,
+    charging: electric ? { state: charging ? "charging" : complete ? "complete" : "disconnected" } : undefined,
+    location: latitude !== undefined && longitude !== undefined && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180 ? { latitude, longitude, address: p.location?.address?.formatted } : undefined,
+  }
+}
 export class BMWClient {
   private xHeaders: CaptchaHeaders = {}
   constructor(private settings: Settings) {}
@@ -193,7 +256,7 @@ export class BMWClient {
     }
   }
 
-  async loginByPassword(password: string): Promise<void> {
+  async loginByPassword(password: string, refreshData = true): Promise<void> {
     const phone = this.phone()
     if (!password) throw new Error("请输入密码")
     const verifyId = await this.getSliderCaptcha(phone)
@@ -211,19 +274,43 @@ export class BMWClient {
       }),
     })
     if (res?.code !== 200 || !res?.data?.refresh_token) throw new Error(res?.description || "请检查密码是否正确")
+    keySave(KEYS.username, phone)
+    keySave(KEYS.password, password)
     keySave(KEYS.refreshToken, res.data.refresh_token)
     keySave(KEYS.refreshGcid, res.data.gcid)
     keyRemove(KEYS.accessToken)
-    await this.getData(true)
+    keyRemove(KEYS.tokenUpdatedAt)
+    if (refreshData) await this.getData(true)
   }
 
   async getAccessToken(force = false): Promise<string> {
     const cached = keyGet(KEYS.accessToken)
     const updatedAt = Number(keyGet(KEYS.tokenUpdatedAt) || 0)
     if (!force && cached && updatedAt > nowSeconds() - 50 * 60) return cached
+
     const refresh = keyGet(KEYS.refreshToken)
-    if (!refresh) throw new Error("未登录或 refresh token 缺失")
-    return await this.refreshToken(refresh)
+    if (refresh) {
+      try {
+        return await this.refreshToken(refresh)
+      } catch {
+        keyRemove(KEYS.accessToken)
+        keyRemove(KEYS.refreshToken)
+        keyRemove(KEYS.refreshGcid)
+        keyRemove(KEYS.tokenUpdatedAt)
+      }
+    }
+
+    const username = keyGet(KEYS.username)
+    const password = keyGet(KEYS.password)
+    if (!username || !password) {
+      throw new Error("Refresh Token 已失效，且没有保存可用于自动登录的账号密码")
+    }
+
+    this.settings.phone = username
+    await this.loginByPassword(password, false)
+    const renewedRefreshToken = keyGet(KEYS.refreshToken)
+    if (!renewedRefreshToken) throw new Error("自动重新登录后未获得 Refresh Token")
+    return await this.refreshToken(renewedRefreshToken)
   }
 
   async refreshToken(refreshToken: string): Promise<string> {
@@ -241,7 +328,8 @@ export class BMWClient {
     })
     if (!res?.access_token) throw new Error("刷新 access token 失败，请重新登录")
     keySave(KEYS.accessToken, res.access_token)
-    keySave(KEYS.refreshToken, res.refresh_token)
+    if (res.refresh_token) keySave(KEYS.refreshToken, res.refresh_token)
+    if (res.gcid) keySave(KEYS.refreshGcid, res.gcid)
     keySave(KEYS.tokenUpdatedAt, nowSeconds())
     return res.access_token
   }
@@ -266,6 +354,20 @@ export class BMWClient {
     return list
   }
 
+  async fetchVehicleProfile(accessToken: string, vin: string): Promise<any | null> {
+    try {
+      return await requestJSON(`${BMW_SERVER_HOST}/eadrax-vcs/v5/vehicle-data/profile`, {
+        method: "GET",
+        headers: appHeaders({
+          authorization: `Bearer ${accessToken}`,
+          "bmw-vin": vin,
+          "x-user-agent": BMW_HEADERS["x-user-agent"],
+        }),
+      })
+    } catch {
+      return null
+    }
+  }
   async getVehicleDetails(accessToken: string, force = false): Promise<VehicleData | null> {
     try {
       const vehicles = await this.getVehicleList(accessToken, force)
@@ -277,12 +379,19 @@ export class BMWClient {
       })
       if (!stateText.includes("not found")) {
         const state = JSON.parse(stateText)
-        vehicle.properties = state?.state || {}
+        vehicle.properties = compactVehicleState(state?.state || {})
         keySave(KEYS.tiresData, JSON.stringify(vehicle.properties))
       } else if (keyGet(KEYS.tiresData)) {
-        vehicle.properties = JSON.parse(keyGet(KEYS.tiresData)!)
+        vehicle.properties = compactVehicleState(JSON.parse(keyGet(KEYS.tiresData)!))
       } else vehicle.properties = {}
-      vehicle.properties.averageConsumption = await this.sustainability(accessToken, vehicle.vin)
+             const profile = await this.fetchVehicleProfile(accessToken, vehicle.vin)
+       const profileVehicleType = vehicleTypeFromProfile(profile)
+       
+       if (profileVehicleType) vehicle.properties.vehicleType = profileVehicleType
+       const sustainability = await this.sustainability(accessToken, vehicle.vin)
+       vehicle.properties.averageConsumption = sustainability.averageConsumption
+       vehicle.snapshot = normalizeVehicleSnapshot(vehicle, profileVehicleType)
+       
       keySave(KEYS.vehicleUpdatedAt, nowSeconds())
       keySave(KEYS.vehicleData, JSON.stringify(vehicle))
       return vehicle
@@ -295,110 +404,40 @@ export class BMWClient {
 
   async getData(force = false): Promise<VehicleData | null> {
     const access = await this.getAccessToken(force)
-    if (this.settings.signIn) this.checkInDaily(access).catch(() => {})
     return await this.getVehicleDetails(access, force)
   }
 
-  // 独立查询 JOY 数量用于展示；失败只保留缓存，不影响车辆数据刷新。
-  async refreshJoyCoinForDisplay(force = false): Promise<string> {
-    let lastError: any = null
-    try {
-      const access = await this.getAccessToken(force)
-      const joy = await this.getJoyCoinInfo(access, false, false)
-      if (joy !== null && joy !== "") return joy
-    } catch (e) { lastError = e }
-    try {
-      const access = await this.getAccessToken(true)
-      const joy = await this.getJoyCoinInfo(access, false, false)
-      if (joy !== null && joy !== "") return joy
-    } catch (e) { lastError = e }
-    const cached = keyGet(KEYS.lastJoyCoin)
-    if (cached !== null && cached !== "") return cached
-    throw lastError || new Error("JOY 数量为空")
-  }
-
-  async checkInDaily(accessToken: string) {
-    if (keyGet(KEYS.lastCheckIn) === today()) return
-    const res = await requestJSON(`${BMW_SERVER_HOST}/cis/eadrax-community/private-api/v4/mine/check-in`, {
-      method: "POST",
-      headers: appHeaders({ authorization: `Bearer ${accessToken}` }),
-      body: JSON.stringify({ verificationId: null, verificationCode: null }),
-    })
-    if (Number(res?.code) === 200) keySave(KEYS.lastCheckIn, today())
-    else await notify("My BMW 签到", res?.message || "签到失败", this.settings.notify)
-  }
-
-  async getJoyCoinInfo(accessToken: string, doNotify = false, cache = false): Promise<string | null> {
-    if (cache && nowSeconds() - Number(keyGet(KEYS.joyCoinInfoTime) || 0) < 300 && keyGet(KEYS.lastJoyCoin) !== null) return keyGet(KEYS.lastJoyCoin)
-    const res = await requestJSON(`${BMW_SERVER_HOST}/cis/eadrax-membership/api/v3/joy-list`, {
-      method: "POST",
-      headers: appHeaders({ authorization: `Bearer ${accessToken}` }),
-      body: JSON.stringify({}),
-    })
-    const rawData = res?.data
-    const data = typeof rawData === "string" ? (() => { try { return JSON.parse(rawData) } catch { return rawData } })() : rawData
-    const joy = findJoyCoin(data) ?? findJoyCoin(res)
-    if (String(res?.code) === "200" && joy !== undefined && joy !== null) {
-      const joyText = String(joy)
-      keySave(KEYS.lastJoyCoin, joyText)
-      keySave(KEYS.joyCoinInfoTime, nowSeconds())
-      if (doNotify) await notify("My BMW JOY", `当前共${joyText || 0} JOY币`, this.settings.notify)
-      return joyText
-    }
-    throw new Error(res?.message || res?.description || `JOY 接口返回异常(code=${res?.code ?? "unknown"})`)
-  }
-
-  async sustainability(accessToken: string, vin: string): Promise<[string, string]> {
-    if (nowSeconds() - Number(keyGet(KEYS.sustainabilityTime) || 0) < 60 && keyGet(KEYS.sustainability)) {
-      return JSON.parse(keyGet(KEYS.sustainability)!)
+  async sustainability(accessToken: string, vin: string): Promise<{ averageConsumption: [string, string] }> {
+    const cached = keyGet(KEYS.sustainability)
+    if (nowSeconds() - Number(keyGet(KEYS.sustainabilityTime) || 0) < 60 && cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed)) return { averageConsumption: parsed as [string, string] }
+        if (Array.isArray(parsed?.averageConsumption)) return { averageConsumption: parsed.averageConsumption as [string, string] }
+      } catch {}
     }
     const gcid = keyGet(KEYS.refreshGcid) || ""
     const res = await requestJSON(`${BMW_SERVER_HOST}/eadrax-suscs/v1/vehicles/sustainability`, {
       headers: appHeaders({ authorization: `Bearer ${accessToken}`, "bmw-vin": vin, "x-gcid": gcid }),
     })
-    let ret: [string, string] = ["油耗", ""]
+    let averageConsumption: [string, string] = ["油耗", ""]
     if (res?.status === "Success") {
       if (res.widget?.monthly?.totalElectricConsumption) {
         const last = Number(res.widget.lastTrip.electricConsumption.averageConsumption)
         const month = Number(res.widget.monthly.totalElectricConsumption.averageConsumption)
-        ret = ["电耗", `${last.toFixed(1)}${this.settings.showTireFuelTrend ? trend(last - month) : ""}`]
+        averageConsumption = ["电耗", `${last.toFixed(1)}${this.settings.showTireFuelTrend ? trend(last - month) : ""}`]
       } else if (res.widget?.monthly?.totalCombustionConsumption) {
         const last = Number(res.widget.lastTrip.fuelConsumption.averageConsumption)
         const month = Number(res.widget.monthly.totalCombustionConsumption.averageConsumption)
-        ret = ["油耗", `${last.toFixed(1)}${this.settings.showTireFuelTrend ? trend(last - month) : ""}`]
+        averageConsumption = ["油耗", `${last.toFixed(1)}${this.settings.showTireFuelTrend ? trend(last - month) : ""}`]
       }
       keySave(KEYS.sustainabilityTime, nowSeconds())
-      keySave(KEYS.sustainability, JSON.stringify(ret))
+      keySave(KEYS.sustainability, JSON.stringify({ averageConsumption }))
+      return { averageConsumption }
     }
-    return ret
+    return { averageConsumption }
   }
 
-  async queryCoupons(accessToken: string): Promise<any> {
-    return await requestJSON(`${BMW_SERVER_HOST}/cis/eadrax-membership-m2/m2/api/equity/v2/listWithGroupSort`, {
-      method: "POST",
-      headers: appHeaders({ authorization: `Bearer ${accessToken}` }),
-    })
-  }
-
-  async receiveFirstCoupon(): Promise<string> {
-    const access = await this.getAccessToken()
-    const list = await this.queryCoupons(access)
-    const item = list?.data?.list?.find((x: any) => x.customerEquityId != null && x.receiveStatus === 2)
-    if (!item) return "暂无可领取礼券"
-    const detail = await requestJSON(`${BMW_SERVER_HOST}/cis/eadrax-active-luckin-bff/membership/api/v2/membership-my-benifit-detail`, {
-      method: "POST",
-      headers: appHeaders({ authorization: `Bearer ${access}` }),
-      body: JSON.stringify({ customerEquityId: `${item.customerEquityId}` }),
-    })
-    const voucherId = detail?.data?.equityVouchers?.[0]?.voucherId
-    if (!voucherId) return "礼券详情异常"
-    const res = await requestJSON(`${BMW_SERVER_HOST}/cis/eadrax-active-luckin-bff/loyalty-coupon/api/v2/receive`, {
-      method: "POST",
-      headers: appHeaders({ authorization: `Bearer ${access}` }),
-      body: JSON.stringify({ voucherId: `${voucherId}`, vin: "", equityId: `${detail.data.equityId || ""}` }),
-    })
-    return res?.message || (res?.code === 200 ? "领取完成" : "领取失败")
-  }
 }
 
 function trend(v: number): string { return v > 0 ? "↑" : v < 0 ? "↓" : "↔" }
