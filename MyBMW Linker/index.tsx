@@ -15,6 +15,7 @@ import {
   Spacer,
   Text,
   TextField,
+  SecureField,
   Toggle,
   VStack,
   ZStack,
@@ -45,8 +46,9 @@ function fuelRows(p: any, totalFuelLiters = 0): Array<{ icon: string; value: str
   const fuelLevel = p?.combustionFuelLevel
   const electricState = p?.electricChargingState
   const hasValue = (v: any) => v !== undefined && v !== null && v !== ""
-  const hasFuel = !!fuelLevel && (hasValue(fuelLevel.remainingFuelLiters) || hasValue(fuelLevel.remainingFuelPercent))
-  const hasElectric = !!electricState && hasValue(electricState.chargingLevelPercent)
+  const vehicleType = String(p?.vehicleType || "").toUpperCase()
+  const hasFuel = vehicleType !== "BEV" && !!fuelLevel && (hasValue(fuelLevel.remainingFuelLiters) || hasValue(fuelLevel.remainingFuelPercent))
+  const hasElectric = (vehicleType === "BEV" || vehicleType === "PHEV") && !!electricState && hasValue(electricState.chargingLevelPercent)
   const rows: Array<{ icon: string; value: string }> = []
 
   // 油车：只显示油量；混动车：油量和电量分别显示。
@@ -74,9 +76,9 @@ function fuelRows(p: any, totalFuelLiters = 0): Array<{ icon: string; value: str
 function Stat({ icon, title, value }: { icon: string; title: string; value: string | number }) {
   return <HStack alignment="center" spacing={6}>
     <ZStack alignment="center" frame={{ width: 20, height: 18 }}>
-      <Image systemName={icon} font="body" />
+      <Image systemName={icon} font="body" frame={{ width: 20, height: 18 }} />
     </ZStack>
-    <Text frame={{ width: 60 }}>{title}</Text>
+    <Text frame={{ width: 60, alignment: "leading" }}>{title}</Text>
     <Spacer />
     <Text>{String(value || "--")}</Text>
   </HStack>
@@ -85,9 +87,9 @@ function Stat({ icon, title, value }: { icon: string; title: string; value: stri
 function StatRow({ icon, title, value }: { icon: string; title: string; value: string }) {
   return <HStack alignment="center" spacing={6}>
     <ZStack alignment="center" frame={{ width: 20, height: 18 }}>
-      <Image systemName={icon} font="body" />
+      <Image systemName={icon} font="body" frame={{ width: 20, height: 18 }} />
     </ZStack>
-    <Text frame={{ width: 60 }}>{title}</Text>
+    <Text frame={{ width: 60, alignment: "leading" }}>{title}</Text>
     <Spacer />
     <Text>{value || "--"}</Text>
   </HStack>
@@ -100,7 +102,7 @@ function LoginView({ initial, onDone }: { initial: Settings; onDone: () => void 
   const [code, setCode] = useState("")
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState("默认使用密码登录。手机号会自动规范化为 86 开头；密码不会保存。")
+  const [message, setMessage] = useState("默认使用密码登录。手机号会自动规范化为 86 开头；用户名和密码将安全保存到 Keychain，用于 Refresh Token 失效后自动重新登录。")
 
   async function sendSMS() {
     setBusy(true)
@@ -146,24 +148,28 @@ function LoginView({ initial, onDone }: { initial: Settings; onDone: () => void 
   }
 
   async function clearTokens() {
+    keyRemove(KEYS.username)
+    keyRemove(KEYS.password)
     keyRemove(KEYS.accessToken)
     keyRemove(KEYS.refreshToken)
     keyRemove(KEYS.refreshGcid)
+    keyRemove(KEYS.tokenUpdatedAt)
     keyRemove(KEYS.correlation)
     keyRemove(KEYS.x)
-    setMessage("已清除登录令牌，请重新登录。")
+    setPassword("")
+    setMessage("已清除保存的账号密码及登录令牌，请重新登录。")
   }
 
   return <NavigationStack>
     <List navigationTitle="账号登录" navigationBarTitleDisplayMode="inline">
       <Section footer={<Text>{message}</Text>}>
         <TextField title="手机号" value={phone} onChanged={setPhone} prompt="11 位手机号，或 86 开头手机号" />
-        <Picker title="登录方式" systemImage="person.crop.rectangle" value={mode === "password" ? 0 : 1} onChanged={(v: number) => { const next = v === 0 ? "password" : "sms"; setMode(next); setMessage(next === "password" ? "密码登录：会先完成滑块验证，再用 BMW 公钥加密密码提交。密码不会保存。" : "短信验证码登录：先发送短信，再填写验证码完成登录。") }}>
+        <Picker title="登录方式" systemImage="person.crop.rectangle" value={mode === "password" ? 0 : 1} onChanged={(v: number) => { const next = v === 0 ? "password" : "sms"; setMode(next); setMessage(next === "password" ? "密码登录：会先完成滑块验证，再用 BMW 公钥加密密码提交。登录成功后凭据将保存到 Keychain，用于 Token 失效时自动续期。" : "短信验证码登录：先发送短信，再填写验证码完成登录。短信登录不会保存密码，Refresh Token 失效后需要重新登录。") }}>
           <Text tag={0}>密码登录</Text>
           <Text tag={1}>短信登录</Text>
         </Picker>
         {mode === "sms" && otpId ? <TextField title="短信验证码" value={code} onChanged={setCode} prompt="6 位验证码" /> : null}
-        {mode === "password" ? <TextField title="登录密码" value={password} onChanged={setPassword} prompt="My BMW 账号密码；不会保存" /> : null}
+        {mode === "password" ? <SecureField title="登录密码" value={password} onChanged={setPassword} prompt="My BMW 账号密码；安全保存到 Keychain" /> : null}
       </Section>
       <Section>
         {mode === "sms" ? <Button title={busy ? "处理中…" : "发送短信"} systemImage="paperplane" action={sendSMS} /> : null}
@@ -213,19 +219,6 @@ function SettingField({ label, value, onChanged }: { label: string; value: strin
     <TextField title="" value={value} onChanged={onChanged} frame={{ width: 190 }} multilineTextAlignment="trailing" />
   </HStack>
 }
-function hasCombustionFuel(vehicle: VehicleData | null): boolean {
-  // 与首页/Widget 的 fuelRows 保持一致：只有实际存在油量数据时才显示油箱容积。
-  if (!vehicle) return true
-  const p: any = vehicle.properties || {}
-  const fuelLevel = p?.combustionFuelLevel
-  const hasValue = (v: any) => v !== undefined && v !== null && v !== ""
-  const hasFuel = !!fuelLevel && (hasValue(fuelLevel.remainingFuelLiters) || hasValue(fuelLevel.remainingFuelPercent))
-  if (hasFuel) return true
-  if (p?.electricChargingState) return false
-  return true
-}
-
-
 function SettingsView({ settings, vehicle, onSaved }: { settings: Settings; vehicle: VehicleData | null; onSaved: () => void }) {
   const [s, setS] = useState<Settings>(settings)
   const update = (patch: Settings) => { const next = { ...s, ...patch }; setS(next); writeSettings(next); onSaved() }
@@ -234,25 +227,13 @@ function SettingsView({ settings, vehicle, onSaved }: { settings: Settings; vehi
       <Section title="车辆与显示">
         <SettingField label="自定义车名" value={s.customName || ""} onChanged={v => update({ customName: v })} />
         <SettingField label="车牌" value={s.licensePlate || ""} onChanged={v => update({ licensePlate: v })} />
-        {hasCombustionFuel(vehicle) ? <SettingField label="油箱容积(L)" value={String(s.totalFuelLiters || 0)} onChanged={v => update({ totalFuelLiters: Number(v) || 0 })} /> : null}
+        {String((vehicle?.properties as any)?.vehicleType || "").toUpperCase() !== "BEV" ? <SettingField label="油箱容积(L)" value={String(s.totalFuelLiters || 0)} onChanged={v => update({ totalFuelLiters: Number(v) || 0 })} /> : null}
         <SettingField label="车辆图片 URL" value={s.customVehicleImage || ""} onChanged={v => update({ customVehicleImage: v })} />
         <SettingField label="Logo 图片 URL" value={s.customLogoImage || ""} onChanged={v => update({ customLogoImage: v })} />
       </Section>
       <Section title="开关">
-        <Toggle title="自动签到" value={s.signIn ?? true} onChanged={v => update({ signIn: v })} />
         <Toggle title="通知提醒" value={s.notify ?? true} onChanged={v => update({ notify: v })} />
-        <Toggle title="显示签到图标" value={s.showSignInIcon ?? true} onChanged={v => update({ showSignInIcon: v })} />
         <Toggle title="胎压/能耗趋势" value={s.showTireFuelTrend ?? false} onChanged={v => update({ showTireFuelTrend: v })} />
-      </Section>
-      <Section footer={<Text>互动任务会操作社区点赞/评论/关注/发动态等接口，请确认风险后自行开启。</Text>}>
-        <SettingField label="执行时间" value={s.activityTimerVal || "00:00"} onChanged={v => update({ activityTimerVal: v })} />
-        <Toggle title="点赞+评论+收藏" value={s.activityAllTasks ?? false} onChanged={v => update({ activityAllTasks: v })} />
-        <Toggle title="浏览 120S" value={s.activityView120S ?? false} onChanged={v => update({ activityView120S: v })} />
-        <Toggle title="关注任务" value={s.activityFollow ?? false} onChanged={v => update({ activityFollow: v })} />
-        <Toggle title="领券任务" value={s.activityCoupon ?? false} onChanged={v => update({ activityCoupon: v })} />
-        <Toggle title="发布动态" value={s.activityPostMoment ?? false} onChanged={v => update({ activityPostMoment: v })} />
-        <SettingField label="评论文本" value={s.activityCommentText || ""} onChanged={v => update({ activityCommentText: v })} />
-        <SettingField label="动态文本" value={s.activityPostMomentText || ""} onChanged={v => update({ activityPostMomentText: v })} />
       </Section>
     </List>
   </NavigationStack>
@@ -337,7 +318,7 @@ function Dashboard() {
         </VStack>
       </Section>
       <Section title="车辆状态">
-         <Stat icon="gauge.medium" title="总里程" value={`${mileage} km`} />
+         <Stat icon="globe.asia.australia" title="总里程" value={`${mileage} km`} />
          <Stat icon="map" title="续航" value={`${range} km`} />
          {fuel.map((item, index) => <StatRow icon={item.icon} title={item.icon === "fuelpump" ? "油量" : "电量"} value={item.value} key={`fuel-${index}`} />)}
          <Stat icon="flame" title={consumptionTitle} value={consumptionValue} />
