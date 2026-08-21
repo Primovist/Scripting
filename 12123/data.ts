@@ -5,12 +5,15 @@ export const ALIPAY_URL = "alipays://platformapi/startapp?appId=2019050964403523
 export const PRODUCT_ID = "p10000000000000000001";
 export const TOKEN_KEY = "12123.token";
 export const DATA_KEY = "12123.data";
+export const CACHE_DATE_KEY = "12123.cacheDate";
 export const REFRESH_MINUTES_KEY = "12123.refreshMinutes";
 export const BOXJS_DOMAIN_KEY = "12123.boxjsDomain";
 export const BOXJS_DEFAULT_DOMAIN = "boxjs.net";
 export const BOXJS_TOKEN_NAME = "wx_12123";
 export const VEHICLES_KEY = "12123.vehicles";
 export const SELECTED_VEHICLE_KEY = "12123.selectedVehicle";
+export const SURGE_PROTOCOL_KEY = "12123.surgeProtocol";
+export const SURGE_DEFAULT_PROTOCOL = "http";
 export const SURGE_PORT_KEY = "12123.surgePort";
 export const SURGE_PASSWORD_KEY = "12123.surgePassword";
 export const SURGE_DEFAULT_PORT = "6166";
@@ -24,22 +27,27 @@ class TokenExpiredError extends Error {
   }
 }
 
-function surgeConfig(): { url: string; key: string } {
+function surgeConfig(): { url: string; key: string; protocol: "http" | "https" } {
+  const protocolValue = Keychain.get(SURGE_PROTOCOL_KEY) === "https" ? "https" : SURGE_DEFAULT_PROTOCOL;
   const port = Keychain.get(SURGE_PORT_KEY) || SURGE_DEFAULT_PORT;
   const key = Keychain.get(SURGE_PASSWORD_KEY) || SURGE_DEFAULT_PASSWORD;
-  return { url: `http://127.0.0.1:${port}`, key };
+  return { url: `${protocolValue}://127.0.0.1:${port}`, key, protocol: protocolValue };
 }
 async function setSurgeModule(enabled: boolean): Promise<void> {
   try {
     const config = surgeConfig();
-    await fetch(`${config.url}/v1/modules`, {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (config.key) headers["X-Key"] = config.key;
+    const response = await fetch(`${config.url}/v1/modules`, {
       method: "POST",
-      headers: { "X-Key": config.key, "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ [SURGE_MODULE_NAME]: enabled }),
+      // HTTPS API 可能使用 Surge 本机自签名证书。
       allowInsecureRequest: true,
-      timeout: 5,
+      timeout: 8,
       debugLabel: enabled ? "开启 12123 Token 模块" : "关闭 12123 Token 模块",
     });
+    if (!response.ok) throw new Error(`Surge HTTP API 返回 ${response.status}`);
   } catch (error) {
     console.log(`Surge 模块${enabled ? "开启" : "关闭"}失败：${String(error)}`);
   }
@@ -199,6 +207,13 @@ function formatTime(date = new Date()): string {
 }
 
 
+function todayKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function hasTodayCache(): boolean {
+  return Keychain.get(CACHE_DATE_KEY) === todayKey();
+}
 function readCache(): WidgetData | null {
   const raw = Keychain.get(DATA_KEY);
   if (!raw) return null;
@@ -211,7 +226,9 @@ function readCache(): WidgetData | null {
 
 export async function loadWidgetData(): Promise<WidgetData> {
   const cached = readCache();
-  // 优先从 BoxJS 同步最新 Token；代理不可用时继续使用本地 Token。
+  // 同一天优先使用缓存；没有当天缓存时才访问网络。
+  if (cached && hasTodayCache()) return cached;
+  // 跨天或没有缓存时，优先从 BoxJS 同步最新 Token。
   await syncTokenFromBoxJS();
   const token = Keychain.get(TOKEN_KEY);
   if (!token) return cached ?? defaultData("请先在 12123 设置 Token");
@@ -253,6 +270,7 @@ export async function loadWidgetData(): Promise<WidgetData> {
       licenseChangeDate: firstDate(license, ["validityEnd"]),
     };
     Keychain.set(DATA_KEY, JSON.stringify(data));
+    Keychain.set(CACHE_DATE_KEY, todayKey());
     await disableTokenModule();
     return data;
   } catch (error) {
