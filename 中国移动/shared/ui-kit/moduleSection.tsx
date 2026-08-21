@@ -1,5 +1,5 @@
 // shared/ui-kit/moduleSection.tsx
-import { Section, Text, Button, useState } from "scripting"
+import { Section, Text, Button, useState, DisclosureGroup } from "scripting"
 
 declare const Storage: any
 
@@ -7,7 +7,7 @@ export type ModuleAction = {
   title: string
   action: () => void | Promise<void>
 
-  // 可选：右侧 SF Symbol
+  // 可选：左侧 SF Symbol
   systemImage?: string
 
   // 可选：弱化显示（比如“相关仓库/说明”这种）
@@ -56,22 +56,27 @@ export function ModuleSection(props: ModuleSectionProps) {
   } = props
 
   const footerText = footerLines.filter(Boolean).join("\n")
+  const visibleActions = (actions ?? []).filter((a) => !a?.hidden)
 
+  // Storage 里存的是 collapsed（true=收起）
   const [expanded, setExpanded] = useState(() => {
     if (!collapsible) return true
-    // Storage 里存的是 collapsed（true=收起）
     const collapsed = readBool(collapseStorageKey, defaultCollapsed)
     return !collapsed
   })
 
-  const toggleExpanded = async () => {
-    if (!collapsible) return
-    const nextExpanded = !expanded
-    setExpanded(nextExpanded) // ✅ 立刻生效
-    writeBool(collapseStorageKey, !nextExpanded) // ✅ 存 collapsed
+  function persistExpanded(nextExpanded: boolean) {
+    // ✅ Storage 存 collapsed
+    writeBool(collapseStorageKey, !nextExpanded)
   }
 
-  const visibleActions = (actions ?? []).filter((a) => !a?.hidden)
+  const handleDisclosureChanged = (nextExpanded: boolean) => {
+    if (!collapsible) return
+    setExpanded(nextExpanded)
+    persistExpanded(nextExpanded)
+  }
+
+  const toggleTitle = expanded ? "收起组件模块" : "展开组件模块"
 
   return (
     <Section
@@ -88,17 +93,25 @@ export function ModuleSection(props: ModuleSectionProps) {
         ) : undefined
       }
     >
-      {collapsible ? (
-        <Button
-          title={expanded ? "收起组件模块" : "展开组件模块"}
-          systemImage={expanded ? "chevron.down" : "chevron.right"}
-          foregroundStyle="secondaryLabel"
-          action={toggleExpanded}
-        />
-      ) : undefined}
 
-      {expanded
-        ? visibleActions.map((item, idx) => (
+      {collapsible ? (
+        <DisclosureGroup
+          title={toggleTitle}
+          isExpanded={expanded}
+          onChanged={handleDisclosureChanged}
+        >
+          {visibleActions.map((item, idx) => (
+            <Button
+              key={`${idx}-${item.title}`}
+              title={item.title}
+              systemImage={item.systemImage}
+              foregroundStyle={item.foregroundStyle}
+              action={item.action}
+            />
+          ))}
+        </DisclosureGroup>
+      ) : (
+        visibleActions.map((item, idx) => (
           <Button
             key={`${idx}-${item.title}`}
             title={item.title}
@@ -107,7 +120,7 @@ export function ModuleSection(props: ModuleSectionProps) {
             action={item.action}
           />
         ))
-        : undefined}
+      )}
     </Section>
   )
 }

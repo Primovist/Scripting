@@ -1,53 +1,53 @@
 {
-  "description" : "",
+  "name" : "中国电信",
   "runInApp" : false,
   "remoteResource" : {
-    "hash" : "",
-    "url" : "https://github.com/Primovist/Scripting/tree/main/中国电信",
-    "autoUpdateInterval" : 600
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/中国电信",
+    "hash" : "79979504bf69bf953e30a448d859d15b",
+    "autoUpdateInterval" : null
   },
-  "intentInputTypes" : [
-
-  ],
-  "author" : {
-    "homepage" : null,
-    "email" : null,
-    "name" : "ByteValley"
-  },
-  "localizedNames" : {
-    "de" : "",
-    "fr" : "",
-    "es" : "",
-    "zh" : "中国电信",
-    "it" : "",
-    "pt" : "",
-    "ja" : "",
-    "en" : "",
-    "ru" : ""
-  },
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/anker1209\/icon\/main\/zgdx.png",
   "permissions" : null,
-  "icon" : "antenna.radiowaves.left.and.right",
+  "entry" : "index.tsx",
+  "color" : "rgba(28, 140, 255,1)",
   "contributors" : [
     {
       "name" : "LChen",
       "email" : "lchen@lchen.ac.cn",
-      "homepage" : "https://github.com/Primovist/Scripting"
+      "homepage" : "https:\/\/github.com\/Primovist\/Scripting"
     }
   ],
-  "name" : "中国电信",
-  "color" : "rgba(28, 140, 255,1)",
-  "localizedDescriptions" : {
-    "zh" : "",
+  "description" : "",
+  "intentInputTypes" : [
+
+  ],
+  "version" : "1.0.0",
+  "localizedNames" : {
     "it" : "",
     "fr" : "",
-    "pt" : "",
-    "es" : "",
     "ja" : "",
+    "de" : "",
+    "zh" : "中国电信",
+    "ru" : "",
+    "es" : "",
+    "en" : "",
+    "pt" : ""
+  },
+  "localizedDescriptions" : {
+    "es" : "",
     "en" : "",
     "de" : "",
-    "ru" : ""
+    "ja" : "",
+    "it" : "",
+    "zh" : "",
+    "ru" : "",
+    "fr" : "",
+    "pt" : ""
   },
-  "iconImage" : "",
-  "entry" : "index.tsx",
-  "version" : "1.0.0"
+  "icon" : "antenna.radiowaves.left.and.right",
+  "author" : {
+    "email" : null,
+    "name" : "ByteValley",
+    "homepage" : null
+  }
 }

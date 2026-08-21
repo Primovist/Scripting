@@ -1,0 +1,49 @@
+{
+  "icon" : "antenna.radiowaves.left.and.right",
+  "entry" : "index.tsx",
+  "localizedNames" : {
+    "ja" : "",
+    "ru" : "",
+    "fr" : "",
+    "de" : "",
+    "zh" : "",
+    "it" : "",
+    "en" : "",
+    "es" : "",
+    "pt" : ""
+  },
+  "color" : "rgba(28, 140, 255,1)",
+  "author" : {
+    "homepage" : null,
+    "name" : "ByteValley",
+    "email" : null
+  },
+  "contributors" : [
+
+  ],
+  "intentInputTypes" : [
+
+  ],
+  "localizedDescriptions" : {
+    "it" : "",
+    "en" : "",
+    "zh" : "",
+    "de" : "",
+    "es" : "",
+    "ja" : "",
+    "fr" : "",
+    "ru" : "",
+    "pt" : ""
+  },
+  "version" : "1.0.0",
+  "description" : "",
+  "name" : "中国移动",
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/anker1209\/icon\/main\/zgyd.png",
+  "permissions" : null,
+  "remoteResource" : {
+    "autoUpdateInterval" : 600,
+    "hash" : "0be61c8076f92fe7a7c7b0c325a1fe70",
+    "url" : "https:\/\/raw.githubusercontent.com\/ByteValley\/NetTool\/main\/Scripting\/Release\/中國移動.scripting"
+  },
+  "runInApp" : false
+}
