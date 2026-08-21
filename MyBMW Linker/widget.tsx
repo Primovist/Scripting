@@ -1,4 +1,4 @@
-import { Color, HStack, Image, Link, Spacer, Text, VStack, Widget, ZStack, fetch, gradient } from "scripting"
+import { HStack, Image, Link, Spacer, Text, VStack, Widget, ZStack, fetch } from "scripting"
 import { BMWClient } from "./bmw"
 import { BMW_HEADERS, BMW_SERVER_HOST, DEFAULT_LOGO_LIGHT, KEYS, type Settings, type VehicleData } from "./constants"
 import { hidden, keyGet, normalizeSettings, readSettings } from "./storage"
@@ -9,8 +9,9 @@ function fuelRows(p: any, totalFuelLiters = 0): Array<{ icon: string; value: str
   const fuelLevel = p?.combustionFuelLevel
   const electricState = p?.electricChargingState
   const hasValue = (v: any) => v !== undefined && v !== null && v !== ""
-  const hasFuel = !!fuelLevel && (hasValue(fuelLevel.remainingFuelLiters) || hasValue(fuelLevel.remainingFuelPercent))
-  const hasElectric = !!electricState && hasValue(electricState.chargingLevelPercent)
+  const vehicleType = String(p?.vehicleType || "").toUpperCase()
+  const hasFuel = vehicleType !== "BEV" && !!fuelLevel && (hasValue(fuelLevel.remainingFuelLiters) || hasValue(fuelLevel.remainingFuelPercent))
+  const hasElectric = (vehicleType === "BEV" || vehicleType === "PHEV") && !!electricState && hasValue(electricState.chargingLevelPercent)
   const rows: Array<{ icon: string; value: string }> = []
 
   // 油车：只显示油量；混动车：油量和电量分别显示。
@@ -38,6 +39,7 @@ function fuelRows(p: any, totalFuelLiters = 0): Array<{ icon: string; value: str
 function fuelSummary(p: any, totalFuelLiters = 0): string {
   return fuelRows(p, totalFuelLiters).map(x => x.value).join(" / ")
 }
+
 
 type VehicleCoordinate = { latitude: number; longitude: number }
 
@@ -125,18 +127,49 @@ function tireRows(p: any, showTrend = false): Array<{ side: "left" | "right"; va
   ].filter(Boolean) as Array<{ side: "left" | "right"; value: string }>
 }
 
+function doorWindowMessages(p: any): string[] {
+  const messages: string[] = []
+  let doorOpenCount = 0
+  let windowOpenCount = 0
+  const collect = (state: any, name: string, labels: Record<string, string>, kind: "door" | "window"): boolean => {
+    if (!state) return false
+    const keys = Object.keys(labels)
+    const rearUnknown = String(state.leftRear || "").toUpperCase() === "UNKNOWN" && String(state.rightRear || "").toUpperCase() === "UNKNOWN"
+    const effectiveKeys = rearUnknown ? keys.filter(key => key !== "leftRear" && key !== "rightRear") : keys
+    const available = effectiveKeys.filter(key => state[key] !== undefined && state[key] !== null && state[key] !== "")
+    if (!available.length) return false
+    const openLabels = available.filter(key => String(state[key]).toUpperCase() === "OPEN").map(key => labels[key])
+    const unknownLabels = available.filter(key => String(state[key]).toUpperCase() === "UNKNOWN").map(key => labels[key])
+    if (kind === "door") doorOpenCount = openLabels.length
+    else windowOpenCount = openLabels.length
+    if (openLabels.length === 1) messages.push(`${openLabels[0]}未关`)
+    else if (openLabels.length > 1) messages.push(kind === "door" ? "多个车门未关" : "多个车窗未关")
+    else if (unknownLabels.length > 0) messages.push(`${name}状态未知`)
+    return true
+  }
+  const doorLabels = { leftFront: "左前车门", rightFront: "右前车门", leftRear: "左后车门", rightRear: "右后车门" }
+  const windowLabels = { leftFront: "左前车窗", rightFront: "右前车窗", leftRear: "左后车窗", rightRear: "右后车窗" }
+  const detailedDoors = collect(p?.doorsState, "车门", doorLabels, "door")
+  const detailedWindows = collect(p?.windowsState, "车窗", windowLabels, "window")
+  if (!detailedDoors && String(p?.doorsState?.combinedState || "").toUpperCase() === "OPEN") doorOpenCount = 1
+  if (!detailedWindows && String(p?.windowsState?.combinedState || "").toUpperCase() === "OPEN") windowOpenCount = 1
+  if (doorOpenCount > 0 && windowOpenCount > 0) return ["车门窗未关"]
+  if (!detailedDoors && doorOpenCount > 0) messages.push(doorOpenCount > 1 ? "多个车门未关" : "车门未关")
+  if (!detailedWindows && windowOpenCount > 0) messages.push(windowOpenCount > 1 ? "多个车窗未关" : "车窗未关")
+  return Array.from(new Set(messages))
+}
+
 function controlMessages(p: any): string[] {
   const list: string[] = []
-  const checks = p?.checkControlMessages
-  if (Array.isArray(checks) && checks.length > 0) {
-    for (const item of checks) {
-      // 原脚本只使用接口返回的 name；type/severity 的映射代码是注释状态。
-      if (item?.name) list.push(item.name)
-    }
+  const checks = Array.isArray(p?.checkControlMessages) ? p.checkControlMessages : []
+  for (const item of checks) {
+    const severity = String(item?.severity || "").trim().toUpperCase()
+    if (["HIGH", "HIGHEST", "CRITICAL"].includes(severity) && item?.name) list.push(String(item.name))
   }
-  if (p?.doorsState?.combinedState !== "CLOSED") list.push("车门未关闭")
-  if (p?.windowsState?.combinedState !== "CLOSED") list.push("车窗未关闭")
-  if (p?.roofState?.roofState !== "CLOSED") list.push("天窗未关闭")
+  list.push(...doorWindowMessages(p))
+  if (String(p?.roofState?.roofState || "").toUpperCase() === "OPEN") list.push("天窗未关闭")
+  if (String(p?.doorsState?.hood || "").toUpperCase() === "OPEN") list.push("引擎盖打开")
+  if (String(p?.doorsState?.trunk || "").toUpperCase() === "OPEN") list.push("后备箱打开")
   return Array.from(new Set(list))
 }
 
@@ -145,6 +178,25 @@ function carStatusText(p: any): string {
   return messages.length ? messages[0] : "ALL GOOD"
 }
 
+function snapshotControlMessages(snapshot: any): string[] {
+  if (!snapshot) return []
+  const list = Array.isArray(snapshot.checks) ? snapshot.checks.map((check: any) => check.title).filter(Boolean) : []
+  const access = snapshot.access || {}
+  if (access.doors === "open") list.push("车门未关闭")
+  if (access.windows === "open") list.push("车窗未关闭")
+  if (access.roof === "open") list.push("天窗未关闭")
+  if (access.hood === "open") list.push("引擎盖打开")
+  if (access.trunk === "open") list.push("后备箱打开")
+  return Array.from(new Set(list))
+}
+
+function snapshotDoorWindowStatus(snapshot: any): { ok: boolean; text: string; icon: string } {
+  const access = snapshot?.access || {}
+  const messages = snapshotControlMessages(snapshot).filter((text: string) => /车门|车窗|天窗|引擎盖|后备箱/.test(text))
+  if (access.lock === "unlocked") return { ok: false, text: "已解锁", icon: "exclamationmark.shield" }
+  if (messages.length) return { ok: false, text: messages.join(" · "), icon: "exclamationmark.shield" }
+  return { ok: true, text: "门窗已关闭", icon: "checkmark.shield" }
+}
 async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<string> {
   if (settings.customVehicleImage) return settings.customVehicleImage
   const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
@@ -166,17 +218,15 @@ async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<s
   }
 }
 
+
 function doorWindowStatus(p: any): { ok: boolean; text: string; icon: string } {
+  const messages = doorWindowMessages(p)
   if (p?.doorsState?.combinedSecurityState === "UNLOCKED") return { ok: false, text: "已解锁", icon: "exclamationmark.shield" }
-  if (p?.doorsState?.combinedState === "CLOSED" && p?.windowsState?.combinedState === "CLOSED") {
-    let text = "门窗已关闭"
-    let ok = true
-    if (p?.roofState?.roofState && p.roofState.roofState !== "CLOSED") { text = "天窗未关闭"; ok = false }
-    if (p?.doorsState?.hood === "OPEN") { text = "引擎盖打开"; ok = false }
-    if (p?.doorsState?.trunk === "OPEN") { text = "后备箱打开"; ok = false }
-    return { ok, text, icon: ok ? "checkmark.shield" : "exclamationmark.shield" }
-  }
-  return { ok: false, text: "门窗未关闭", icon: "exclamationmark.shield" }
+  if (messages.length > 0) return { ok: false, text: messages.join(" · "), icon: "exclamationmark.shield" }
+  if (String(p?.roofState?.roofState || "").toUpperCase() === "OPEN") return { ok: false, text: "天窗未关闭", icon: "exclamationmark.shield" }
+  if (String(p?.doorsState?.hood || "").toUpperCase() === "OPEN") return { ok: false, text: "引擎盖打开", icon: "exclamationmark.shield" }
+  if (String(p?.doorsState?.trunk || "").toUpperCase() === "OPEN") return { ok: false, text: "后备箱打开", icon: "exclamationmark.shield" }
+  return { ok: true, text: "门窗已关闭", icon: "checkmark.shield" }
 }
 
 function isVehicleCharging(p: any): boolean {
@@ -190,9 +240,9 @@ function isVehicleCharging(p: any): boolean {
 function VehicleContent({ data, settings, carImageUrl, compact = false }: { data: VehicleData; settings: Settings; carImageUrl: string; compact?: boolean }) {
   const p: any = data.properties || {}
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
-  const doorStatus = doorWindowStatus(p)
-  const charging = isVehicleCharging(p)
-  const controlStatus = controlMessages(p)
+  const doorStatus = data.snapshot ? snapshotDoorWindowStatus(data.snapshot) : doorWindowStatus(p)
+  const charging = data.snapshot?.charging?.state === "charging" || isVehicleCharging(p)
+  const controlStatus = data.snapshot ? snapshotControlMessages(data.snapshot) : controlMessages(p)
   const width = compact ? 112 : 132
   const displayDoorStatusText = doorStatus.text
   const imageWidth = compact ? 112 : 144
@@ -201,7 +251,7 @@ function VehicleContent({ data, settings, carImageUrl, compact = false }: { data
   return <Link url="de.bmw.connected.mobile20.cn://"><VStack alignment="center" spacing={compact ? 0 : 2} frame={{ width }}>
     <HStack alignment="center" spacing={0} frame={{ width }} offset={compact ? { x: 0, y: 0 } : { x: 8, y: 6 }}>
       <Spacer />
-      {settings.showSignInIcon ? <Image imageUrl="https://m.qqtlr.com/signin.png" resizable scaleToFit renderingMode="template" foregroundStyle={{ light: "#4A4A4A", dark: "#FFFFFF" }} frame={{ width: compact ? 16 : 20, height: compact ? 16 : 20 }} offset={compact ? { x: 2, y: 2 } : { x: 4, y: 4 }} /> : null}
+
     </HStack>
     <ZStack alignment="topLeading" frame={{ width, height: imageHeight }} offset={compact ? { x: 0, y: 0 } : { x: 0, y: -5 }}>
       <VStack alignment="leading" spacing={-3} frame={{ width: compact ? 62 : 76, height: compact ? 34 : 40 }} offset={{ x: compact ? -8 : -14, y: 0 }}>
@@ -235,7 +285,7 @@ function LargeTopWidget({ data, settings, carImageUrl }: { data: VehicleData; se
   const p: any = data.properties || {}
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const name = settings.customName || `${data.brand || "BMW"} ${data.model || ""}`
-  const avg = Array.isArray(p.averageConsumption) ? `${p.averageConsumption[1] || p.averageConsumption[0] || "--"}` : "--"
+  const avg = Array.isArray(p.averageConsumption) ? `${p.averageConsumption[1] || p.averageConsumption[0] || "--"}` : Array.isArray(p.averageConsumption?.averageConsumption) ? `${p.averageConsumption.averageConsumption[1] || p.averageConsumption.averageConsumption[0] || "--"}` : "--"
   const fuel = fuelRows(p, settings.totalFuelLiters)
   const tires = tireRows(p, settings.showTireFuelTrend ?? false)
   const address = p.location?.address?.formatted || "暂无位置"
