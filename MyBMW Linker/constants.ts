@@ -1,7 +1,6 @@
 export const SCRIPT_NAME = "MyBMW Linker"
 export const REMOTE_ROOT = "https://m.qqtlr.com"
 export const BMW_SERVER_HOST = "https://myprofile.bmw.com.cn"
-export const WIDGET_VERSION = "5.14.0"
 
 export const BMW_HEADERS: Record<string, string> = {
   "Content-Type": "application/json; charset=utf-8",
@@ -16,6 +15,8 @@ export const DEFAULT_X_CORRELATION_ID = "meiDaiSan-only-used-xid"
 export const DEFAULT_X = "cd16030b4acc1006694040177d4de3fd434a78b4b872397ff77ac7fad6be93d3"
 
 export const KEYS = {
+  username: "PHONE_MY_BMW_USERNAME",
+  password: "PHONE_MY_BMW_PASSWORD",
   refreshToken: "PHONE_MY_BMW_REFRESH_TOKEN",
   refreshGcid: "PHONE_MY_BMW_REFRESH_GCID",
   accessToken: "PHONE_MY_BMW_TOKEN",
@@ -29,19 +30,6 @@ export const KEYS = {
   tiresData: "VIN_MY_BMW_TIRES_DATA",
   sustainability: "VIN_MY_BMW_SUSTAINABILITY",
   sustainabilityTime: "VIN_sustainabilityTime",
-  lastCheckIn: "PHONE_MY_BMW_LAST_CHECK_IN_AT",
-  lastJoyCoin: "PHONE_MY_BMW_LAST_JOYCOIN",
-  joyCoinInfoTime: "PHONE_getJoyCoinInfoTime",
-  coupon: "PHONE_MY_BMW_ACTIVITY_COUPON",
-  like: "PHONE_MY_BMW_ACTIVITY_LIKE",
-  collect: "PHONE_MY_BMW_ACTIVITY_COLLECT",
-  comment: "PHONE_MY_BMW_ACTIVITY_COMMENT",
-  view120: "PHONE_MY_BMW_ACTIVITY_VIEW120S",
-  follow: "PHONE_MY_BMW_ACTIVITY_FLLOW",
-  moment: "PHONE_MY_BMW_ACTIVITY_MONENT",
-  carLink: "PHONE_MY_BMW_DOOR_LOCK",
-  accountId: "accountId",
-  admin: "admin",
 }
 
 export type Settings = {
@@ -50,42 +38,24 @@ export type Settings = {
   customName?: string
   customVehicleImage?: string
   customLogoImage?: string
-  showSignInIcon?: boolean
-  transparentWidget?: boolean
   showTireFuelTrend?: boolean
-  showJoyCoin?: boolean
   totalFuelLiters?: number
   licensePlate?: string
-  signIn?: boolean
   notify?: boolean
-  activityTimerVal?: string
-  activityAllTasks?: boolean
-  activityFollow?: boolean
-  activityView120S?: boolean
-  activityCoupon?: boolean
-  activityPostMoment?: boolean
-  activityCarLink?: boolean
-  activityCommentText?: string
-  activityPostMomentText?: string
 }
 
 export const defaultSettings: Required<Omit<Settings, "phone" | "vin" | "customName" | "customVehicleImage" | "customLogoImage" | "licensePlate">> = {
-  showSignInIcon: true,
-  transparentWidget: false,
   showTireFuelTrend: true,
-  showJoyCoin: false,
   totalFuelLiters: 0,
-  signIn: true,
   notify: true,
-  activityTimerVal: "00:00",
-  activityAllTasks: false,
-  activityFollow: false,
-  activityView120S: false,
-  activityCoupon: false,
-  activityPostMoment: false,
-  activityCarLink: false,
-  activityCommentText: "👍点赞",
-  activityPostMomentText: "每日报道",
+}
+
+export type VehicleSnapshot = {
+  energy: { type: "fuel" | "electric" | "hybrid" | "unknown"; levelPercent?: number; fuelPercent?: number; batteryPercent?: number; remainingLiters?: number; rangeKm?: number }
+  access: { lock: "locked" | "unlocked" | "unknown"; doors: string; windows: string; roof: string; hood: string; trunk: string; doorStates: Record<string, string>; windowStates: Record<string, string> }
+  checks: Array<{ id: string; severity: "critical" | "warning"; title: string; detail?: string }>
+  charging?: { state: "charging" | "complete" | "disconnected" | "unknown" }
+  location?: { latitude: number; longitude: number; address?: string }
 }
 
 export type VehicleData = {
@@ -94,4 +64,5 @@ export type VehicleData = {
   model?: string
   licensePlate?: string
   properties?: any
+  snapshot?: VehicleSnapshot
 }
