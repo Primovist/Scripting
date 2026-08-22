@@ -1,49 +1,49 @@
 {
+  "runInApp" : false,
+  "author" : {
+    "name" : "LChen",
+    "email" : "lchen@lchen.ac.cn",
+    "homepage" : "https:\/\/github.com\/Primovist"
+  },
   "iconImage" : null,
+  "description" : "WebSSH-u60pro 状态中号桌面组件",
+  "icon" : "wifi.router.fill",
+  "name" : "U60 Pro 状态",
   "intentInputTypes" : [
 
   ],
+  "entry" : "index.tsx",
   "localizedDescriptions" : {
-    "ja" : "",
-    "pt" : "",
-    "zh" : "",
-    "fr" : "",
-    "ru" : "",
-    "de" : "",
-    "it" : "",
     "es" : "",
-    "en" : ""
+    "fr" : "",
+    "pt" : "",
+    "ru" : "",
+    "ja" : "",
+    "it" : "",
+    "en" : "",
+    "de" : "",
+    "zh" : ""
   },
-  "name" : "U60 Pro 状态",
+  "remoteResource" : {
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/U60%20Pro%20%E7%8A%B6%E6%80%81",
+    "hash" : "f27389341578df6ecf8e86a1a1a64a42",
+    "autoUpdateInterval" : null
+  },
   "contributors" : [
 
   ],
-  "remoteResource" : {
-    "autoUpdateInterval" : null,
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/U60 Pro 状态",
-    "hash" : "C7F1ABB8-5754-4966-805A-96F900681203"
-  },
-  "icon" : "wifi.router.fill",
   "version" : "1.0.0",
-  "runInApp" : false,
-  "permissions" : null,
-  "entry" : "index.tsx",
-  "localizedNames" : {
-    "ja" : "",
-    "pt" : "",
-    "zh" : "",
-    "fr" : "",
-    "ru" : "",
-    "de" : "",
-    "it" : "",
-    "es" : "",
-    "en" : ""
-  },
-  "author" : {
-    "email" : "lchen@lchen.ac.cn",
-    "homepage" : "https:\/\/github.com\/Primovist",
-    "name" : "LChen"
-  },
   "color" : "rgba(0, 86, 214, 1)",
-  "description" : "WebSSH-u60pro 状态中号桌面组件"
+  "permissions" : null,
+  "localizedNames" : {
+    "zh" : "",
+    "ja" : "",
+    "de" : "",
+    "ru" : "",
+    "fr" : "",
+    "es" : "",
+    "it" : "",
+    "en" : "",
+    "pt" : ""
+  }
 }
