@@ -1,49 +1,49 @@
 {
   "runInApp" : false,
-  "author" : {
-    "name" : "LChen",
-    "email" : "lchen@lchen.ac.cn",
-    "homepage" : "https:\/\/github.com\/Primovist"
-  },
-  "iconImage" : null,
-  "description" : "WebSSH-u60pro 状态中号桌面组件",
-  "icon" : "wifi.router.fill",
-  "name" : "U60 Pro 状态",
-  "intentInputTypes" : [
-
-  ],
-  "entry" : "index.tsx",
-  "localizedDescriptions" : {
-    "es" : "",
-    "fr" : "",
-    "pt" : "",
-    "ru" : "",
-    "ja" : "",
-    "it" : "",
-    "en" : "",
-    "de" : "",
-    "zh" : ""
-  },
-  "remoteResource" : {
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/U60%20Pro%20%E7%8A%B6%E6%80%81",
-    "hash" : "f27389341578df6ecf8e86a1a1a64a42",
-    "autoUpdateInterval" : null
-  },
   "contributors" : [
 
   ],
-  "version" : "1.0.0",
-  "color" : "rgba(0, 86, 214, 1)",
-  "permissions" : null,
-  "localizedNames" : {
-    "zh" : "",
+  "iconImage" : "https:\/\/encrypted-tbn0.gstatic.com\/images?q=tbn:ANd9GcRUM7ze1FMtc5-e8ZUr0zvLICdZgdqrDeDTYEo3YyN1ZK6PPQBxySTMkwqv&s=10",
+  "author" : {
+    "name" : "LChen",
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "email" : "lchen@lchen.ac.cn"
+  },
+  "localizedDescriptions" : {
+    "it" : "",
+    "pt" : "",
     "ja" : "",
-    "de" : "",
+    "en" : "",
+    "zh" : "",
+    "es" : "",
+    "fr" : "",
     "ru" : "",
+    "de" : ""
+  },
+  "permissions" : null,
+  "intentInputTypes" : [
+
+  ],
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/U60%20Pro%20%E7%8A%B6%E6%80%81",
+    "hash" : "ce763a19eb3f43d842c94b06a1e5d494"
+  },
+  "localizedNames" : {
+    "pt" : "",
+    "zh" : "",
+    "it" : "",
     "fr" : "",
     "es" : "",
-    "it" : "",
     "en" : "",
-    "pt" : ""
-  }
+    "ru" : "",
+    "ja" : "",
+    "de" : ""
+  },
+  "color" : "rgba(0, 86, 214, 1)",
+  "icon" : "wifi.router.fill",
+  "name" : "U60 Pro 状态",
+  "version" : "1.0.1",
+  "entry" : "index.tsx",
+  "description" : "WebSSH-u60pro 状态中号桌面组件"
 }
