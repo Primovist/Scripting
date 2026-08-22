@@ -8,6 +8,7 @@ import {
   Text,
   VStack,
   Widget,
+  ZStack,
 } from "scripting"
 import { RefreshIntent } from "./app_intents"
 import { DashboardData } from "./model"
@@ -74,11 +75,7 @@ function Header({ data }: { data: DashboardData }) {
         {data.signalBars}
       </Text>
       <Rectangle fill={divider} frame={{ width: 1, height: 13 }} />
-      <Image
-        systemName={batterySymbol(data.battery, data.charging)}
-        font={16}
-        foregroundStyle={batteryColor(data.battery, data.charging)}
-      />
+      <BatteryIcon value={data.battery} charging={data.charging} />
       <Text font={12} fontWeight="bold" monospacedDigit>
         {battery}
       </Text>
@@ -284,17 +281,46 @@ function suffix(value: string, unit: string): string {
   return value === "--" ? value : `${value}${unit}`
 }
 
-function batterySymbol(value: number | null, charging: boolean): string {
-  if (charging) return "battery.100percent.bolt"
-  if (value === null || value <= 0) return "battery.0percent"
-  if (value <= 25) return "battery.25percent"
-  if (value <= 50) return "battery.50percent"
-  if (value <= 75) return "battery.75percent"
-  return "battery.100percent"
+function BatteryIcon({
+  value,
+  charging,
+}: {
+  value: number | null
+  charging: boolean
+}) {
+  const unknown = value === null
+  const color: Color = unknown
+    ? "systemRed"
+    : charging
+      ? "systemGreen"
+      : value < 20
+        ? "systemRed"
+        : primary
+
+  return (
+    <ZStack frame={{ width: 22, height: 16 }}>
+      <Image
+        systemName={batterySymbol(value, charging)}
+        font={16}
+        foregroundStyle={color}
+      />
+      {unknown ? (
+        <Image
+          systemName="exclamationmark"
+          font={7}
+          fontWeight="bold"
+          foregroundStyle="systemRed"
+        />
+      ) : null}
+    </ZStack>
+  )
 }
 
-function batteryColor(value: number | null, charging: boolean): Color {
-  if (charging || (value !== null && value > 50)) return "systemGreen"
-  if (value !== null && value <= 25) return "systemRed"
-  return "systemOrange"
+function batterySymbol(value: number | null, charging: boolean): string {
+  if (charging) return "battery.100percent.bolt"
+  if (value === null || value < 13) return "battery.0percent"
+  if (value < 38) return "battery.25percent"
+  if (value < 63) return "battery.50percent"
+  if (value < 88) return "battery.75percent"
+  return "battery.100percent"
 }
