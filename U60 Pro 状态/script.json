@@ -1,0 +1,49 @@
+{
+  "iconImage" : null,
+  "intentInputTypes" : [
+
+  ],
+  "localizedDescriptions" : {
+    "ja" : "",
+    "pt" : "",
+    "zh" : "",
+    "fr" : "",
+    "ru" : "",
+    "de" : "",
+    "it" : "",
+    "es" : "",
+    "en" : ""
+  },
+  "name" : "U60 Pro 状态",
+  "contributors" : [
+
+  ],
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/U60 Pro 状态",
+    "hash" : "C7F1ABB8-5754-4966-805A-96F900681203"
+  },
+  "icon" : "wifi.router.fill",
+  "version" : "1.0.0",
+  "runInApp" : false,
+  "permissions" : null,
+  "entry" : "index.tsx",
+  "localizedNames" : {
+    "ja" : "",
+    "pt" : "",
+    "zh" : "",
+    "fr" : "",
+    "ru" : "",
+    "de" : "",
+    "it" : "",
+    "es" : "",
+    "en" : ""
+  },
+  "author" : {
+    "email" : "lchen@lchen.ac.cn",
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "name" : "LChen"
+  },
+  "color" : "rgba(0, 86, 214, 1)",
+  "description" : "WebSSH-u60pro 状态中号桌面组件"
+}
