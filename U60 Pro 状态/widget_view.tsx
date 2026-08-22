@@ -12,6 +12,10 @@ import {
 import { RefreshIntent } from "./app_intents"
 import { DashboardData } from "./model"
 
+const transparent =
+  Widget.isTransparentBackground || Widget.isTransparentMode || Widget.isBlurMode
+const dark = Device.colorScheme === "dark"
+
 const primary: Color = "label"
 const secondary: Color = "secondaryLabel"
 const accent: Color = "systemBlue"
@@ -22,8 +26,12 @@ const blue: Color = "systemIndigo"
 const purple: Color = "systemPurple"
 const magenta: Color = "systemPink"
 const divider: Color = "separator"
-const pillBackground: Color = "secondarySystemBackground"
-const widgetBackground: Color = "systemBackground"
+const pillBackground: Color = transparent
+  ? dark
+    ? "rgba(28,28,30,0.5)"
+    : "rgba(242,242,247,0.5)"
+  : "secondarySystemBackground"
+const widgetBackground: Color = transparent ? "clear" : "systemBackground"
 
 export function U60ProWidget({ data }: { data: DashboardData }) {
   return (
@@ -58,7 +66,7 @@ function Header({ data }: { data: DashboardData }) {
         {data.model}
       </Text>
       <Text font={11} fontWeight="semibold" lineLimit={1} minScaleFactor={0.55}>
-        {`UFI ${data.version}`}
+        {data.version}
       </Text>
       <Spacer minLength={2} />
       <Image systemName="cellularbars" font={14} foregroundStyle={secondary} />
