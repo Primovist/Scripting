@@ -32,6 +32,10 @@ const BATCH_REQUESTS = [
     config: "zwrt_common_info",
     section: "common_config",
   }),
+  rpc(16, "uci", "get", {
+    config: "zwrt_zte_mc_tmp",
+    section: "battery",
+  }),
 ]
 
 export async function fetchDashboardData(): Promise<DashboardData> {
