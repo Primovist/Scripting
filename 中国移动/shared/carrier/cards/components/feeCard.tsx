@@ -5,6 +5,7 @@ import {
   Text,
   Image,
   Spacer,
+  Widget,
 } from "scripting"
 import { timeStyle, RingCardTheme } from "../../theme"
 
@@ -18,6 +19,13 @@ export function FeeCard(props: {
   const { title, valueText, theme, logoPath, updateTime } = props
   const isUrlLogo =
     !!logoPath && (logoPath.startsWith("http://") || logoPath.startsWith("https://"))
+  const transparent = Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground
+  const cardBackground = {
+    style: transparent
+      ? ({ light: "rgba(255,255,255,0.58)", dark: "rgba(0,0,0,0.46)" } as any)
+      : theme.bg,
+    shape: { type: "rect", cornerRadius: 18, style: "continuous" },
+  } as any
 
   const LogoImage = ({ size }: { size: number }) =>
     logoPath ? (
@@ -40,10 +48,7 @@ export function FeeCard(props: {
       alignment="center"
       padding={{ top: 10, leading: 10, bottom: 10, trailing: 10 }}
       frame={{ minWidth: 0, maxWidth: Infinity }}
-      widgetBackground={{
-        style: theme.bg,
-        shape: { type: "rect", cornerRadius: 18, style: "continuous" },
-      }}
+      {...(transparent ? { background: cardBackground } : { widgetBackground: cardBackground })}
     >
       <Spacer minLength={2} />
       <HStack alignment="center">
