@@ -25,7 +25,7 @@
   "intentInputTypes" : [
 
   ],
-  "version" : "1.0.1",
+  "version" : "1.0.2",
   "icon" : "antenna.radiowaves.left.and.right",
   "iconImage" : "https:\/\/raw.githubusercontent.com\/anker1209\/icon\/main\/zgyd.png",
   "entry" : "index.tsx",
