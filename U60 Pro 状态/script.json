@@ -43,7 +43,7 @@
   "color" : "rgba(0, 86, 214, 1)",
   "icon" : "wifi.router.fill",
   "name" : "U60 Pro 状态",
-  "version" : "1.0.2",
+  "version" : "1.0.3",
   "entry" : "index.tsx",
   "description" : "WebSSH-u60pro 状态中号桌面组件"
 }
