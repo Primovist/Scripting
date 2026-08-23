@@ -51,33 +51,30 @@ export function FeeCard(props: {
       {...(transparent ? { background: cardBackground } : { widgetBackground: cardBackground })}
     >
       <Spacer minLength={2} />
-      <HStack alignment="center">
+      <VStack alignment="center" spacing={2} frame={{ width: 80, height: 56 }}>
         <Spacer />
-        <LogoImage size={40} />
-        <Spacer />
-      </HStack>
-
-      <Spacer minLength={4} />
-      <HStack
-        alignment="center"
-        spacing={3}
-        frame={{ minWidth: 0, maxWidth: Infinity }}
-      >
-        <Image
-          systemName="arrow.triangle.2.circlepath"
-          font={5}
-          foregroundStyle={timeStyle}
-        />
-        <Text
-          font={11}
-          foregroundStyle={timeStyle}
-          lineLimit={1}
-          minScaleFactor={0.5}
-          frame={{ minWidth: 0, maxWidth: Infinity, alignment: "center" }}
+        <LogoImage size={36} />
+        <HStack
+          alignment="center"
+          spacing={3}
+          frame={{ minWidth: 0, maxWidth: Infinity }}
         >
-          {updateTime}
-        </Text>
-      </HStack>
+          <Image
+            systemName="arrow.triangle.2.circlepath"
+            font={5}
+            foregroundStyle={timeStyle}
+          />
+          <Text
+            font={12}
+            foregroundStyle={timeStyle}
+            lineLimit={1}
+            minScaleFactor={0.8}
+          >
+            {updateTime}
+          </Text>
+        </HStack>
+        <Spacer />
+      </VStack>
 
       <Spacer minLength={6} />
       <Text
