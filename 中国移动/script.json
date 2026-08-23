@@ -1,49 +1,49 @@
 {
-  "icon" : "antenna.radiowaves.left.and.right",
-  "entry" : "index.tsx",
   "localizedNames" : {
+    "pt" : "",
     "ja" : "",
-    "ru" : "",
-    "fr" : "",
     "de" : "",
+    "fr" : "",
+    "en" : "",
     "zh" : "",
     "it" : "",
-    "en" : "",
     "es" : "",
-    "pt" : ""
+    "ru" : ""
   },
   "color" : "rgba(28, 140, 255,1)",
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/中国移动",
+    "hash" : "B13C908E-CB5E-4659-9874-63231C51CD51"
+  },
+  "runInApp" : false,
   "author" : {
     "homepage" : null,
-    "name" : "ByteValley",
-    "email" : null
+    "email" : null,
+    "name" : "ByteValley"
   },
-  "contributors" : [
-
-  ],
   "intentInputTypes" : [
 
   ],
+  "version" : "1.0.1",
+  "icon" : "antenna.radiowaves.left.and.right",
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/anker1209\/icon\/main\/zgyd.png",
+  "entry" : "index.tsx",
+  "contributors" : [
+
+  ],
+  "name" : "中国移动",
+  "description" : "",
   "localizedDescriptions" : {
-    "it" : "",
+    "fr" : "",
     "en" : "",
-    "zh" : "",
-    "de" : "",
+    "pt" : "",
     "es" : "",
     "ja" : "",
-    "fr" : "",
     "ru" : "",
-    "pt" : ""
+    "zh" : "",
+    "de" : "",
+    "it" : ""
   },
-  "version" : "1.0.0",
-  "description" : "",
-  "name" : "中国移动",
-  "iconImage" : "https:\/\/raw.githubusercontent.com\/anker1209\/icon\/main\/zgyd.png",
-  "permissions" : null,
-  "remoteResource" : {
-    "autoUpdateInterval" : 600,
-    "hash" : "0be61c8076f92fe7a7c7b0c325a1fe70",
-    "url" : "https:\/\/raw.githubusercontent.com\/ByteValley\/NetTool\/main\/Scripting\/Release\/中國移動.scripting"
-  },
-  "runInApp" : false
+  "permissions" : null
 }
