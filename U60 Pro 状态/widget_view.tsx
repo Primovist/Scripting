@@ -1,5 +1,6 @@
 import {
   Button,
+  Circle,
   Color,
   HStack,
   Image,
@@ -70,10 +71,13 @@ function Header({ data }: { data: DashboardData }) {
         {data.version}
       </Text>
       <Spacer minLength={2} />
-      <Image systemName="cellularbars" font={14} foregroundStyle={secondary} />
-      <Text font={11} fontWeight="semibold" monospacedDigit>
-        {data.signalBars}
-      </Text>
+      <Image
+        systemName="cellularbars"
+        variableValue={signalFill(data.signalBars)}
+        font={14}
+        foregroundStyle={primary}
+      />
+      {hasQCI(data.qci) ? <QCIIndicator value={data.qci} /> : null}
       <Rectangle fill={divider} frame={{ width: 1, height: 13 }} />
       <BatteryIcon value={data.battery} charging={data.charging} />
       <Text font={12} fontWeight="bold" monospacedDigit>
@@ -127,13 +131,6 @@ function StatusRows({ data }: { data: DashboardData }) {
       <HStack {...rowLayout}>
         <Pill icon="network" color={cyan} value={data.providerAndType} />
         <Pill icon="antenna.radiowaves.left.and.right" color={accent} value={data.band} />
-        {hasQCI(data.qci) ? (
-          <Pill
-            icon="gauge.with.dots.needle.50percent"
-            color="systemOrange"
-            value={data.qci}
-          />
-        ) : null}
         <Pill icon="cpu.fill" color={blue} value={data.cpu} />
         <Pill
           icon="thermometer.medium"
@@ -224,6 +221,33 @@ function Footer({ data }: { data: DashboardData }) {
   )
 }
 
+function QCIIndicator({ value }: { value: string }) {
+  return (
+    <ZStack alignment="center" frame={{ width: 14, height: 14 }}>
+      <Circle
+        fill="clear"
+        stroke={{ shapeStyle: primary, strokeStyle: { lineWidth: 1.2 } }}
+        frame={{ width: 13, height: 13 }}
+      />
+      <Text
+        font={7}
+        fontWeight="bold"
+        foregroundStyle={primary}
+        monospacedDigit
+        frame={{ width: 13, height: 13, alignment: "center" }}
+        offset={{ x: 0.4, y: 0.4 }}
+      >
+        {value}
+      </Text>
+    </ZStack>
+  )
+}
+
+function signalFill(bars: number): number {
+  const level = Math.round((Math.min(5, Math.max(0, bars)) * 4) / 5)
+  return level / 4
+}
+
 function hasQCI(value: string): boolean {
   return /^\d+$/.test(value)
 }
@@ -233,7 +257,6 @@ function statusFontSize(data: DashboardData): number {
     [
       data.providerAndType,
       data.band,
-      ...(hasQCI(data.qci) ? [data.qci] : []),
       data.cpu,
       `${temperatureText(data.cpuTemperature)}|${temperatureText(data.batteryTemperature)}`,
     ],
