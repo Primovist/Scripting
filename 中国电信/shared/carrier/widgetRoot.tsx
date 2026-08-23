@@ -17,15 +17,12 @@
  * - 本文件不打日志；日志应在业务层 widget.tsx 输出
  * ===================================================================== */
 
-import { Widget, VStack, HStack } from "scripting"
+import { Widget } from "scripting"
 
-import { outerCardBg, ringThemes } from "./theme"
 import { buildUsageStat, formatFlowValue } from "./utils/carrierUtils"
 import type { UiSettings } from "./ui"
 
 import { MediumLayout } from "./cards/medium"
-import { FeeCard } from "./cards/components/feeCard"
-import { FullRingStatCard } from "./cards/components/fullRingStatCard"
 
 // ✅ 小号卡入口：cards/small/index.tsx 对外导出的是 SmallLayout
 import { SmallLayout, type SmallCardStyle } from "./cards/small"
@@ -169,70 +166,25 @@ export function WidgetRoot(props: { data: CarrierData; ui: UiSettings; logoPath:
     )
   }
 
-  // ==================== 中号 ====================
-
-  if (Widget.family === "systemMedium") {
-    return (
-      <MediumLayout
-        layout={mediumStyle}
-        feeTitle={data.fee.title}
-        feeText={`${data.fee.balance}${data.fee.unit}`}
-        logoPath={logoPath}
-        updateTime={data.updateTime}
-        flowTitle={useTotalFlow ? totalFlowTitle : flowTitle}
-        flowValueText={useTotalFlow ? totalFlowValueText : flowValueText}
-        flowRatio={useTotalFlow ? totalStat.ratio : flowStat.ratio}
-        otherTitle={useTotalFlow ? undefined : otherTitle}
-        otherValueText={useTotalFlow ? undefined : otherValueText}
-        otherRatio={useTotalFlow ? undefined : otherStat.ratio}
-        voiceTitle={voiceTitle}
-        voiceValueText={voiceValueText}
-        voiceRatio={voiceStat.ratio}
-      />
-    )
-  }
-
-  // ==================== 大号 ====================
+  // ==================== 中号 / 大号 ====================
+  // 大号复用中号的样式选择、三/四卡规则和卡片布局，确保两种尺寸表现一致。
 
   return (
-    <VStack
-      alignment="center"
-      padding={{ top: 10, leading: 10, bottom: 10, trailing: 10 }}
-      widgetBackground={{
-        style: outerCardBg,
-        shape: { type: "rect", cornerRadius: 24, style: "continuous" },
-      }}
-    >
-      <HStack alignment="center" spacing={10}>
-        <FeeCard
-          title={data.fee.title}
-          valueText={`${data.fee.balance}${data.fee.unit}`}
-          theme={ringThemes.fee}
-          logoPath={logoPath}
-          updateTime={data.updateTime}
-        />
-
-        <FullRingStatCard
-          title={flowTitle}
-          valueText={flowValueText}
-          theme={ringThemes.flow}
-          ratio={flowStat.ratio}
-        />
-
-        <FullRingStatCard
-          title={otherTitle}
-          valueText={otherValueText}
-          theme={ringThemes.flowDir}
-          ratio={otherStat.ratio}
-        />
-
-        <FullRingStatCard
-          title={voiceTitle}
-          valueText={voiceValueText}
-          theme={ringThemes.voice}
-          ratio={voiceStat.ratio}
-        />
-      </HStack>
-    </VStack>
+    <MediumLayout
+      layout={mediumStyle}
+      feeTitle={data.fee.title}
+      feeText={`${data.fee.balance}${data.fee.unit}`}
+      logoPath={logoPath}
+      updateTime={data.updateTime}
+      flowTitle={useTotalFlow ? totalFlowTitle : flowTitle}
+      flowValueText={useTotalFlow ? totalFlowValueText : flowValueText}
+      flowRatio={useTotalFlow ? totalStat.ratio : flowStat.ratio}
+      otherTitle={useTotalFlow ? undefined : otherTitle}
+      otherValueText={useTotalFlow ? undefined : otherValueText}
+      otherRatio={useTotalFlow ? undefined : otherStat.ratio}
+      voiceTitle={voiceTitle}
+      voiceValueText={voiceValueText}
+      voiceRatio={voiceStat.ratio}
+    />
   )
 }
