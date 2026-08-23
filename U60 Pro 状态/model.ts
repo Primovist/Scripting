@@ -4,6 +4,8 @@ export interface DashboardData {
   signalBars: number
   battery: number | null
   charging: boolean
+  externalConnected: boolean
+  externalNetwork: boolean
   dailyValue: string
   dailyUnit: string
   monthlyValue: string
@@ -40,6 +42,7 @@ export function makeDashboardData(
   const clients = map[11] ?? {}
   const wifi = map[14] ?? {}
   const system = map[15]?.values ?? map[15] ?? {}
+  const usbBattery = map[16]?.values ?? map[16] ?? {}
 
   const daily = formatBytes(sum(traffic.day_tx_bytes, traffic.day_rx_bytes))
   const monthly = formatBytes(sum(traffic.month_tx_bytes, traffic.month_rx_bytes))
@@ -72,6 +75,10 @@ export function makeDashboardData(
     charging:
       String(device.bat_charger_connect) === "1" ||
       String(device.bat_charger_status).toLowerCase().includes("charg"),
+    externalConnected: String(device.external_charging_flag) === "1",
+    externalNetwork:
+      String(usbBattery.typec_attach_status) === "1" &&
+      String(usbBattery.bat_otg_powerbank_status) === "1",
     dailyValue: daily.value,
     dailyUnit: daily.unit,
     monthlyValue: monthly.value,
@@ -107,6 +114,8 @@ export function emptyDashboardData(message: string): DashboardData {
     signalBars: 0,
     battery: null,
     charging: false,
+    externalConnected: false,
+    externalNetwork: false,
     dailyValue: "--",
     dailyUnit: "",
     monthlyValue: "--",
