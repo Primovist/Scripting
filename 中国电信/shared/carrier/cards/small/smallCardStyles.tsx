@@ -1,6 +1,6 @@
 // shared/carrier/cards/small/smallCardStyles.tsx
 
-import { VStack, HStack, ZStack, Text, Spacer, Image } from "scripting"
+import { VStack, HStack, ZStack, Text, Spacer, Image, Widget } from "scripting"
 import type { SmallCardCommonProps } from "./common"
 import { ringThemes, timeStyle } from "../../theme"
 import type { RingCardTheme } from "../../theme"
@@ -148,13 +148,18 @@ function SymbolImage(props: { systemName: string; size: number; tint: any; opaci
 }
 
 function UnitPill(props: { text: string; tint: any }) {
+  const transparent = Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground
+  const pillBackground = {
+    style: transparent
+      ? ({ light: "rgba(255,255,255,0.72)", dark: "rgba(0,0,0,0.52)" } as any)
+      : ({ light: "rgba(0,0,0,0.10)", dark: "rgba(255,255,255,0.10)" } as any),
+    shape: { type: "capsule", style: "continuous" },
+  } as any
+
   return (
     <VStack
       padding={{ top: 1, leading: 8, bottom: 1, trailing: 8 }}
-      widgetBackground={{
-        style: { light: "rgba(0,0,0,0.10)", dark: "rgba(255,255,255,0.10)" } as any,
-        shape: { type: "capsule", style: "continuous" },
-      }}
+      {...(transparent ? { background: pillBackground } : { widgetBackground: pillBackground })}
     >
       <Text
         font={10}
@@ -290,7 +295,7 @@ function InfoRowWithBar(props: { label: string; value: string; unit: string; the
       <HStack alignment="center" spacing={6} frame={{ minWidth: 0, maxWidth: Infinity }}>
         <VStack
           frame={{ width: BAR_WIDTH, height: BAR_HEIGHT }}
-          widgetBackground={{
+          background={{
             style: { light: "rgba(0,0,0,0.10)", dark: "rgba(255,255,255,0.12)" } as any,
             shape: { type: "capsule", style: "continuous" },
           }}
@@ -300,7 +305,7 @@ function InfoRowWithBar(props: { label: string; value: string; unit: string; the
             {hasRatio && filledWidth > 0 ? (
               <VStack
                 frame={{ width: filledWidth, height: BAR_HEIGHT }}
-                widgetBackground={{ style: theme.tint, shape: { type: "capsule", style: "continuous" } }}
+                background={{ style: theme.tint, shape: { type: "capsule", style: "continuous" } }}
               />
             ) : null}
             <Spacer />
@@ -412,8 +417,8 @@ export function CompactListSmallStyle(props: SmallCardCommonProps) {
           alignment="leading"
           padding={{ top: 7, leading: 10, bottom: 7, trailing: 10 }}
           spacing={showOther ? 7 : 8}
-          widgetBackground={{
-            style: { light: "rgba(0,0,0,0.06)", dark: "rgba(255,255,255,0.08)" } as any,
+          background={{
+            style: { light: "rgba(255,255,255,0.58)", dark: "rgba(0,0,0,0.46)" } as any,
             shape: { type: "rect", cornerRadius: 18, style: "continuous" },
           }}
           frame={{ minWidth: 0, maxWidth: Infinity }}
@@ -436,6 +441,13 @@ export function ProgressListSmallStyle(props: SmallCardCommonProps) {
   const useTotal = !!props.smallMiniBarUseTotalFlow
   const hasOther = !!(props.otherFlowLabel && String(props.otherFlowLabel).trim().length > 0)
   const showOther = !useTotal && hasOther
+  const transparent = Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground
+  const progressPanelBackground = {
+    style: transparent
+      ? ({ light: "rgba(255,255,255,0.58)", dark: "rgba(0,0,0,0.46)" } as any)
+      : ({ light: "rgba(0,0,0,0.06)", dark: "rgba(255,255,255,0.08)" } as any),
+    shape: { type: "rect", cornerRadius: 18, style: "continuous" },
+  } as any
 
   const flowLabel = useTotal ? (props.totalFlowLabel || "总流量") : (props.flowLabel || "通用流量")
   const flowValue = useTotal ? props.totalFlowValue : props.flowValue
@@ -478,10 +490,9 @@ export function ProgressListSmallStyle(props: SmallCardCommonProps) {
           alignment="leading"
           padding={{ top: 7, leading: 10, bottom: 7, trailing: 10 }}
           spacing={showOther ? 7 : 8}
-          widgetBackground={{
-            style: { light: "rgba(0,0,0,0.06)", dark: "rgba(255,255,255,0.08)" } as any,
-            shape: { type: "rect", cornerRadius: 18, style: "continuous" },
-          }}
+          {...(transparent
+            ? { background: progressPanelBackground }
+            : { widgetBackground: progressPanelBackground })}
           frame={{ minWidth: 0, maxWidth: Infinity }}
         >
           <InfoRowWithBar
