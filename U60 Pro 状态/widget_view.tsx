@@ -79,7 +79,12 @@ function Header({ data }: { data: DashboardData }) {
       />
       {hasQCI(data.qci) ? <QCIIndicator value={data.qci} /> : null}
       <Rectangle fill={divider} frame={{ width: 1, height: 13 }} />
-      <BatteryIcon value={data.battery} charging={data.charging} />
+      <BatteryIcon
+        value={data.battery}
+        charging={data.charging}
+        externalConnected={data.externalConnected}
+        externalNetwork={data.externalNetwork}
+      />
       <Text font={12} fontWeight="bold" monospacedDigit>
         {battery}
       </Text>
@@ -307,9 +312,13 @@ function suffix(value: string, unit: string): string {
 function BatteryIcon({
   value,
   charging,
+  externalConnected,
+  externalNetwork,
 }: {
   value: number | null
   charging: boolean
+  externalConnected: boolean
+  externalNetwork: boolean
 }) {
   const unknown = value === null
   const color: Color = unknown
@@ -327,6 +336,32 @@ function BatteryIcon({
         font={16}
         foregroundStyle={color}
       />
+      {externalConnected && !charging && !unknown ? (
+        externalNetwork ? (
+          <HStack spacing={0} offset={{ x: 6, y: 5 }}>
+            <Image
+              systemName="arrow.up.arrow.down"
+              font={5}
+              fontWeight="bold"
+              foregroundStyle="systemBlue"
+            />
+            <Image
+              systemName="powerplug.fill"
+              font={5.5}
+              fontWeight="bold"
+              foregroundStyle="systemOrange"
+            />
+          </HStack>
+        ) : (
+          <Image
+            systemName="powerplug.fill"
+            font={6.5}
+            fontWeight="bold"
+            foregroundStyle="systemOrange"
+            offset={{ x: 7, y: 5 }}
+          />
+        )
+      ) : null}
       {unknown ? (
         <Image
           systemName="exclamationmark"
