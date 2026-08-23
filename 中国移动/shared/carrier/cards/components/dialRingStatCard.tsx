@@ -1,6 +1,6 @@
 // shared/carrier/cards/components/dialRingStatCard.tsx
 
-import { VStack, Text, Image, Spacer, ZStack, Gauge } from "scripting"
+import { VStack, Text, Image, Spacer, ZStack, Gauge, Widget } from "scripting"
 import { RingCardTheme, timeStyle } from "../../theme"
 import { clamp01, percentText } from "../../utils/carrierUtils"
 
@@ -19,16 +19,20 @@ export function DialRingStatCard(props: {
 }) {
   const { title, valueText, theme, ratio } = props
   const r = clamp01(ratio ?? 0)
+  const transparent = Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground
+  const cardBackground = {
+    style: transparent
+      ? ({ light: "rgba(255,255,255,0.58)", dark: "rgba(0,0,0,0.46)" } as any)
+      : theme.bg,
+    shape: { type: "rect", cornerRadius: 18, style: "continuous" },
+  } as any
 
   return (
     <VStack
       alignment="center"
       padding={{ top: 10, leading: 8, bottom: 10, trailing: 8 }}
       frame={{ minWidth: 0, maxWidth: Infinity }}
-      widgetBackground={{
-        style: theme.bg,
-        shape: { type: "rect", cornerRadius: 18, style: "continuous" },
-      }}
+      {...(transparent ? { background: cardBackground } : { widgetBackground: cardBackground })}
     >
       <Spacer minLength={2} />
       <ZStack frame={{ width: 56, height: 56 }}>
