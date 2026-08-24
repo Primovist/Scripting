@@ -1,0 +1,53 @@
+{
+  "runInApp" : false,
+  "contributors" : [
+    {
+      "email" : "lchen@lchen.ac.cn",
+      "name" : "LChen",
+      "homepage" : "https:\/\/github.com\/Primovist"
+    }
+  ],
+  "permissions" : null,
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/7452323\/QuantumultX\/main\/icon\/GitHub.png",
+  "color" : "rgba(128, 138, 148,1)",
+  "version" : "2.0.0",
+  "localizedDescriptions" : {
+    "ja" : "",
+    "zh" : "",
+    "en" : "",
+    "ru" : "",
+    "de" : "",
+    "fr" : "",
+    "pt" : "",
+    "it" : "",
+    "es" : ""
+  },
+  "remoteResource" : {
+    "autoUpdateInterval" : null,
+    "hash" : "2c2cbfe5416e0f914fae2a91b837e2ec",
+    "url" : "https:\/\/github.com\/7452323\/QuantumultX\/tree\/main\/Scripting\/Scripts\/Github上传"
+  },
+  "author" : {
+    "homepage" : null,
+    "name" : "7452323",
+    "email" : null
+  },
+  "name" : "Github上传",
+  "intentInputTypes" : [
+
+  ],
+  "description" : "",
+  "localizedNames" : {
+    "de" : "",
+    "pt" : "",
+    "zh" : "",
+    "en" : "",
+    "fr" : "",
+    "es" : "",
+    "it" : "",
+    "ja" : "",
+    "ru" : ""
+  },
+  "icon" : "level.fill",
+  "entry" : "index.tsx"
+}
