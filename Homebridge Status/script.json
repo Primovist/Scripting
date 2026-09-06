@@ -1,33 +1,33 @@
 {
-  "iconImage" : "https:\/\/raw.githubusercontent.com\/homebridge\/branding\/latest\/logos\/homebridge-silhouette-round-white.png",
-  "localizedNames" : {
-    "zh" : "Homebridge 状态"
-  },
+  "version" : "1.1.2",
   "permissions" : null,
-  "entry" : "index.tsx",
   "author" : {
+    "name" : "LChen",
     "homepage" : "https:\/\/github.com\/Primovist\/Scripting",
-    "email" : "lchen@lchen.ac.cn",
-    "name" : "LChen"
+    "email" : "lchen@lchen.ac.cn"
   },
-  "intentInputTypes" : [
-
-  ],
-  "name" : "Homebridge Status",
-  "color" : "#5E2CA5",
-  "icon" : "house.fill",
-  "version" : "1.1.1",
-  "runInApp" : false,
   "remoteResource" : {
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/Homebridge Status",
     "hash" : "55818bad3811b6518cb979253e9c4ca5",
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/Homebridge Status",
     "autoUpdateInterval" : null
   },
-  "localizedDescriptions" : {
-    "zh" : "显示 Homebridge 运行状态、CPU、内存和更新信息。"
-  },
+  "iconImage" : "https:\/\/raw.githubusercontent.com\/homebridge\/branding\/latest\/logos\/homebridge-silhouette-round-white.png",
+  "runInApp" : false,
   "contributors" : [
 
   ],
-  "description" : "Scripting widget for Homebridge service, CPU, RAM and update status."
+  "color" : "#5E2CA5",
+  "entry" : "index.tsx",
+  "localizedDescriptions" : {
+    "zh" : "显示 Homebridge 运行状态、CPU、内存和更新信息。"
+  },
+  "icon" : "house.fill",
+  "description" : "Scripting widget for Homebridge service, CPU, RAM and update status.",
+  "intentInputTypes" : [
+
+  ],
+  "localizedNames" : {
+    "zh" : "Homebridge 状态"
+  },
+  "name" : "Homebridge Status"
 }
