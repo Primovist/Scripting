@@ -1,14 +1,30 @@
-import { Canvas, Color, HStack, Image, RoundedRectangle, Spacer, Text, VStack, Widget, ZStack } from "scripting";
+import { Canvas, Device, HStack, Image, RoundedRectangle, Spacer, Text, VStack, Widget, ZStack } from "scripting";
 import { ALIPAY_URL, getRefreshMinutes, loadWidgetData, type WidgetData } from "./data";
 
-const BLUE = "#102d83";
-const WHITE = "#ffffff";
+// 可在这里分别调整浅色与深色模式的蓝色背景。
+const BACKGROUND = {
+  light: "#dce8ff",
+  dark: "#102d83",
+} as const;
+
+// 文字、图标与框线使用独立的亮暗双色。
+const FOREGROUND = {
+  light: "#102d83",
+  dark: "#ffffff",
+} as const;
+
+// Canvas 当前不接受 DynamicShapeStyle，因此按当前系统模式选取颜色。
+const CANVAS_FOREGROUND = Device.colorScheme === "dark" ? FOREGROUND.dark : FOREGROUND.light;
+const CANVAS_MUTED = Device.colorScheme === "dark" ? "rgba(255,255,255,0.55)" : "rgba(16,45,131,0.55)";
+const CANVAS_FAINT = Device.colorScheme === "dark" ? "rgba(255,255,255,0.25)" : "rgba(16,45,131,0.25)";
 const REFRESH_TOKEN_URL = "scripting://run_single/12123?action=refreshToken";
 
 type Content = "V" | "L";
 
-function transparentFill(): Color {
-  return Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground ? "rgba(0,0,0,0)" : BLUE;
+function transparentFill() {
+  return Widget.isTransparentMode || Widget.isBlurMode || Widget.isTransparentBackground
+    ? "rgba(0,0,0,0)"
+    : BACKGROUND;
 }
 
 
@@ -23,17 +39,17 @@ function Card({ title, icon, items, large = false }: { title: string; icon: stri
   const borderWidth = large ? 4 : 2;
   return (
     <ZStack alignment="center" padding={large ? 6 : 3} frame={{ maxWidth: "infinity", maxHeight: "infinity", minHeight: large ? 280 : 140 }}>
-      <RoundedRectangle cornerRadius={large ? 24 : 14} fill={transparentFill()} stroke={{ shapeStyle: WHITE, strokeStyle: { lineWidth: borderWidth } }} />
+      <RoundedRectangle cornerRadius={large ? 24 : 14} fill={transparentFill()} stroke={{ shapeStyle: FOREGROUND, strokeStyle: { lineWidth: borderWidth } }} />
       <VStack alignment="leading" spacing={large ? 14 : 8} padding={large ? 20 : 12}>
         <HStack alignment="center" spacing={large ? 12 : 7}>
-          <Image systemName={icon} foregroundStyle={WHITE} frame={{ width: large ? 54 : 38, height: large ? 54 : 38 }} />
-          <Text font={large ? "title2" : "subheadline"} fontWeight="bold" foregroundStyle={WHITE} lineLimit={1} minScaleFactor={0.65}>{title}</Text>
+          <Image systemName={icon} foregroundStyle={FOREGROUND} frame={{ width: large ? 54 : 38, height: large ? 54 : 38 }} />
+          <Text font={large ? "title2" : "subheadline"} fontWeight="bold" foregroundStyle={FOREGROUND} lineLimit={1} minScaleFactor={0.65}>{title}</Text>
         </HStack>
         {items.map(([label, value], index) => (
           <HStack key={`${label}-${index}`} alignment="center">
-            <Text font={large ? "body" : "caption"} foregroundStyle={WHITE} lineLimit={1} minScaleFactor={0.55}>{label}</Text>
+            <Text font={large ? "body" : "caption"} foregroundStyle={FOREGROUND} lineLimit={1} minScaleFactor={0.55}>{label}</Text>
             <Spacer />
-            <Text font={large ? "body" : "caption"} fontWeight="medium" foregroundStyle={WHITE} lineLimit={1} minScaleFactor={0.55}>{value}</Text>
+            <Text font={large ? "body" : "caption"} fontWeight="medium" foregroundStyle={FOREGROUND} lineLimit={1} minScaleFactor={0.55}>{value}</Text>
           </HStack>
         ))}
       </VStack>
@@ -84,7 +100,7 @@ function SmallWidget({ data }: { data: WidgetData }) {
   return (
     <VStack alignment="center" spacing={8} padding={12} background={transparentFill()}>
       {content === "L" ? <LicenseCard data={data} /> : <VehicleCard data={data} />}
-      {data.error ? <Text font="caption" foregroundStyle={WHITE}>{data.error}</Text> : null}
+      {data.error ? <Text font="caption" foregroundStyle={FOREGROUND}>{data.error}</Text> : null}
     </VStack>
   );
 }
@@ -138,18 +154,18 @@ function CircularWidget({ data }: { data: WidgetData }) {
 
             ctx.lineWidth = gaugeWidth;
             ctx.lineCap = "round";
-            ctx.strokeStyle = "rgba(255,255,255,0.25)";
+            ctx.strokeStyle = CANVAS_FAINT;
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, start, end, right);
             ctx.stroke();
 
-            ctx.strokeStyle = "#ffffff";
+            ctx.strokeStyle = CANVAS_FOREGROUND;
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, start, filledEnd, right);
             ctx.stroke();
 
             ctx.lineWidth = gaugeWidth;
-            ctx.strokeStyle = "rgba(255,255,255,0.55)";
+            ctx.strokeStyle = CANVAS_MUTED;
             for (let index = 0; index <= 18; index += 1) {
               const angle = start + direction * Math.PI * (index / 18);
               const x1 = centerX + Math.cos(angle) * (tickRadius - gaugeWidth / 2);
@@ -170,7 +186,7 @@ function CircularWidget({ data }: { data: WidgetData }) {
           const markerAngle = Math.PI / 2 - Math.PI * (12 / 18);
           ctx.lineWidth = gaugeWidth;
           ctx.lineCap = "round";
-          ctx.strokeStyle = "#ffffff";
+          ctx.strokeStyle = CANVAS_FOREGROUND;
           ctx.beginPath();
           ctx.moveTo(centerX + Math.cos(markerAngle) * (radius - gaugeWidth / 2), centerY + Math.sin(markerAngle) * (radius - gaugeWidth / 2));
           ctx.lineTo(centerX + Math.cos(markerAngle) * (radius + gaugeWidth / 2), centerY + Math.sin(markerAngle) * (radius + gaugeWidth / 2));
@@ -179,8 +195,8 @@ function CircularWidget({ data }: { data: WidgetData }) {
         frame={{ width: 76, height: 76 }}
       />
       <HStack alignment="center" spacing={2} frame={{ width: 54, height: 34 }}>
-        <Text font="caption2" foregroundStyle={WHITE} multilineTextAlignment="center" minScaleFactor={0.5} lineLimit={2} frame={{ width: 26, height: 30 }}>{`违法\n${violations}`}</Text>
-        <Text font="caption2" foregroundStyle={WHITE} multilineTextAlignment="center" minScaleFactor={0.5} lineLimit={2} frame={{ width: 26, height: 30 }}>{`扣分\n${points}`}</Text>
+        <Text font="caption2" foregroundStyle={FOREGROUND} multilineTextAlignment="center" minScaleFactor={0.5} lineLimit={2} frame={{ width: 26, height: 30 }}>{`违法\n${violations}`}</Text>
+        <Text font="caption2" foregroundStyle={FOREGROUND} multilineTextAlignment="center" minScaleFactor={0.5} lineLimit={2} frame={{ width: 26, height: 30 }}>{`扣分\n${points}`}</Text>
       </HStack>
     </ZStack>
   );
@@ -202,7 +218,7 @@ function InlineProgressWidget({ data }: { data: WidgetData }) {
         ctx.lineWidth = width;
         ctx.lineCap = "round";
 
-        ctx.strokeStyle = "#ffffff";
+        ctx.strokeStyle = CANVAS_FOREGROUND;
         ctx.beginPath();
         ctx.moveTo(center, y);
         ctx.lineTo(center - half * (violations / 18), y);
@@ -215,7 +231,7 @@ function InlineProgressWidget({ data }: { data: WidgetData }) {
         // 显示左右两侧共 18 个分度，右侧 12 分分度使用更明显的标记。
         ctx.lineCap = "butt";
         ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.strokeStyle = CANVAS_MUTED;
         for (let index = 0; index <= 18; index += 1) {
           const leftX = center - half * (index / 18);
           const rightX = center + half * (index / 18);
@@ -231,7 +247,7 @@ function InlineProgressWidget({ data }: { data: WidgetData }) {
 
         const twelveX = center + half * (12 / 18);
         ctx.lineWidth = 2;
-        ctx.strokeStyle = "#ffffff";
+        ctx.strokeStyle = CANVAS_FOREGROUND;
         ctx.beginPath();
         ctx.moveTo(twelveX, y - size.height * 0.5);
         ctx.lineTo(twelveX, y + size.height * 0.5);
@@ -244,10 +260,10 @@ function InlineProgressWidget({ data }: { data: WidgetData }) {
 function RectangularWidget({ data }: { data: WidgetData }) {
   return (
     <VStack alignment="leading" spacing={1} padding={5} frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-      <Text font="caption2" foregroundStyle={WHITE} minScaleFactor={0.55} lineLimit={1}>{`未处违法 ${data.violationCount} 条`}</Text>
-      <Text font="caption2" foregroundStyle={WHITE} minScaleFactor={0.55} lineLimit={1}>{`累计扣分 ${data.cumulativePoint} 分`}</Text>
-      <Text font="caption2" foregroundStyle={WHITE} minScaleFactor={0.5} lineLimit={1}>{`年检日期 ${data.vehicleInspectionDate}`}</Text>
-      <Text font="caption2" foregroundStyle={WHITE} minScaleFactor={0.5} lineLimit={1}>{`换证日期 ${data.licenseChangeDate}`}</Text>
+      <Text font="caption2" foregroundStyle={FOREGROUND} minScaleFactor={0.55} lineLimit={1}>{`未处违法 ${data.violationCount} 条`}</Text>
+      <Text font="caption2" foregroundStyle={FOREGROUND} minScaleFactor={0.55} lineLimit={1}>{`累计扣分 ${data.cumulativePoint} 分`}</Text>
+      <Text font="caption2" foregroundStyle={FOREGROUND} minScaleFactor={0.5} lineLimit={1}>{`年检日期 ${data.vehicleInspectionDate}`}</Text>
+      <Text font="caption2" foregroundStyle={FOREGROUND} minScaleFactor={0.5} lineLimit={1}>{`换证日期 ${data.licenseChangeDate}`}</Text>
     </VStack>
   );
 }
