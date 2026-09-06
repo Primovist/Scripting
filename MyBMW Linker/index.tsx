@@ -278,6 +278,7 @@ function Dashboard() {
   useEffect(() => { refresh(false) }, [])
 
   const p: any = vehicle?.properties || {}
+  const driving = vehicle?.snapshot?.driving === true || String(p.pwf || "").toUpperCase() === "DRIVING"
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const range = p.combustionFuelLevel?.range || "--"
   const fuel = fuelRows(p, settings.totalFuelLiters)
@@ -311,7 +312,7 @@ function Dashboard() {
           <HStack>
             <Text font="title3" fontWeight="bold">{settings.customName || `${vehicle?.brand || "BMW"} ${vehicle?.model || ""}`}</Text>
             <Spacer />
-            <Text>{isLocked ? "已上锁" : "已解锁"}</Text>
+            <Text>{driving ? "行驶中" : isLocked ? "已上锁" : "已解锁"}</Text>
           </HStack>
           <Text>{vehicle?.vin ? hidden(vehicle.vin) : "未选择车辆"}</Text>
           <Text>{status}</Text>
