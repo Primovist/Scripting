@@ -1,49 +1,49 @@
 {
-  "version" : "1.2.1",
+  "name" : "MyBMW Linker",
+  "author" : {
+    "name" : "LChen",
+    "email" : "lchen@lchen.ac.cn",
+    "homepage" : "https:\/\/github.com\/Primovist"
+  },
+  "localizedNames" : {
+    "it" : "",
+    "es" : "",
+    "pt" : "",
+    "de" : "",
+    "ru" : "",
+    "ja" : "",
+    "fr" : "",
+    "zh" : "MyBMW Linker",
+    "en" : ""
+  },
+  "permissions" : null,
   "intentInputTypes" : [
 
   ],
-  "name" : "MyBMW Linker",
+  "contributors" : [
+
+  ],
+  "iconImage" : "https:\/\/play-lh.googleusercontent.com\/06jX6wWF-2ebFDrLvoCKzRYYxmBNA3UNdSb20_2EmfoN9juoM-57HV35PzcyQPGFiuqAiur31XAA7EdsEj7oGw=w480-h960",
+  "runInApp" : true,
+  "description" : "My BMW vehicle status dashboard and widget.",
+  "icon" : "car.fill",
+  "color" : "#0066B1",
+  "entry" : "index.tsx",
+  "version" : "1.2.2",
   "remoteResource" : {
     "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/MyBMW%20Linker",
     "autoUpdateInterval" : null,
     "hash" : "7a9952e0961b393b87dae5e34eff7b47"
   },
-  "icon" : "car.fill",
-  "color" : "#0066B1",
-  "description" : "My BMW vehicle status dashboard and widget.",
-  "iconImage" : "https:\/\/play-lh.googleusercontent.com\/06jX6wWF-2ebFDrLvoCKzRYYxmBNA3UNdSb20_2EmfoN9juoM-57HV35PzcyQPGFiuqAiur31XAA7EdsEj7oGw=w480-h960",
-  "permissions" : null,
-  "contributors" : [
-
-  ],
   "localizedDescriptions" : {
-    "es" : "",
-    "fr" : "",
-    "ru" : "",
-    "en" : "",
-    "it" : "",
-    "zh" : "My BMW 车辆状态面板与小组件。",
-    "ja" : "",
-    "pt" : "",
-    "de" : ""
-  },
-  "localizedNames" : {
-    "en" : "",
-    "it" : "",
-    "ru" : "",
     "de" : "",
     "ja" : "",
-    "es" : "",
-    "zh" : "MyBMW Linker",
+    "fr" : "",
     "pt" : "",
-    "fr" : ""
-  },
-  "runInApp" : true,
-  "author" : {
-    "email" : "lchen@lchen.ac.cn",
-    "homepage" : "https:\/\/github.com\/Primovist",
-    "name" : "LChen"
-  },
-  "entry" : "index.tsx"
+    "it" : "",
+    "ru" : "",
+    "zh" : "My BMW 车辆状态面板与小组件。",
+    "en" : "",
+    "es" : ""
+  }
 }
