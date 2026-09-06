@@ -86,10 +86,18 @@ async function createMapSnapshot(p: any): Promise<string | null> {
   }
 }
 
-async function cachedMapSnapshot(): Promise<string | null> {
+async function cachedMapSnapshot(p?: any, allowLatest = true): Promise<string | null> {
   const appearance = Device.colorScheme === "dark" ? "dark" : "light"
-  const path = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker/vehicle-map-latest-${appearance}.png`
-  return await FileManager.exists(path) ? `file://${path}` : null
+  const coordinate = p ? vehicleCoordinate(p) : null
+  const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
+  if (coordinate) {
+    const coordinateKey = `${coordinate.latitude.toFixed(6)}_${coordinate.longitude.toFixed(6)}`.replace(/[^0-9_-]/g, "_")
+    const exactPath = `${dir}/vehicle-map-${appearance}-${coordinateKey}.png`
+    if (await FileManager.exists(exactPath)) return `file://${exactPath}`
+  }
+  if (!allowLatest) return null
+  const latestPath = `${dir}/vehicle-map-latest-${appearance}.png`
+  return await FileManager.exists(latestPath) ? `file://${latestPath}` : null
 }
 
 function Row({ icon, value, width, iconColor, lineLimit = 1, font = 11, widgetURL, textOpacity }: { icon: string; value: string; width?: number; iconColor?: string; lineLimit?: number; font?: number | "caption2"; widgetURL?: string; textOpacity?: number }) {
@@ -204,13 +212,17 @@ async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<s
   await FileManager.createDirectory(dir, true)
   // 地图标记样式变更后重新生成，避免继续读取旧的红色大标记缓存。
   try {
-    const token = keyGet(KEYS.accessToken)
+    const token = await new BMWClient(settings).getAccessToken(false)
     if (!token || !data.vin) throw new Error("no token or vin")
-    const res = await fetch(`${BMW_SERVER_HOST}/eadrax-ics/v3/presentation/vehicles/${data.vin}/images?carView=VehicleStatus`, {
+    const res = await fetch(`${BMW_SERVER_HOST}/eadrax-ics/v3/presentation/vehicles/${encodeURIComponent(data.vin)}/images?carView=VehicleStatus`, {
       method: "GET",
-      headers: { ...BMW_HEADERS, authorization: `Bearer ${token}` },
+      headers: { ...BMW_HEADERS, "x-user-agent": data.brand?.toLowerCase() === "mini" ? "ios(27.0);mini;6.8.2(50019);cn" : BMW_HEADERS["x-user-agent"], authorization: `Bearer ${token}`, "bmw-vin": data.vin },
+      timeout: 12,
+      handleRedirect: async request => (request.url.startsWith(BMW_SERVER_HOST) ? request : null),
     })
+    if (!res.ok) throw new Error(`image request failed: ${res.status}`)
     const imageData = await res.data()
+    if (!imageData || imageData.size === 0) throw new Error("empty image response")
     await FileManager.writeAsData(path, imageData)
     return `file://${path}`
   } catch {
@@ -239,6 +251,7 @@ function isVehicleCharging(p: any): boolean {
 
 function VehicleContent({ data, settings, carImageUrl, compact = false }: { data: VehicleData; settings: Settings; carImageUrl: string; compact?: boolean }) {
   const p: any = data.properties || {}
+  const driving = data.snapshot?.driving === true || String(p.pwf || "").toUpperCase() === "DRIVING"
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const doorStatus = data.snapshot ? snapshotDoorWindowStatus(data.snapshot) : doorWindowStatus(p)
   const charging = data.snapshot?.charging?.state === "charging" || isVehicleCharging(p)
@@ -283,6 +296,7 @@ function VehicleContent({ data, settings, carImageUrl, compact = false }: { data
 
 function LargeTopWidget({ data, settings, carImageUrl }: { data: VehicleData; settings: Settings; carImageUrl: string }) {
   const p: any = data.properties || {}
+  const driving = data.snapshot?.driving === true || String(p.pwf || "").toUpperCase() === "DRIVING"
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const name = settings.customName || `${data.brand || "BMW"} ${data.model || ""}`
   const avg = Array.isArray(p.averageConsumption) ? `${p.averageConsumption[1] || p.averageConsumption[0] || "--"}` : Array.isArray(p.averageConsumption?.averageConsumption) ? `${p.averageConsumption.averageConsumption[1] || p.averageConsumption.averageConsumption[0] || "--"}` : "--"
@@ -315,7 +329,7 @@ function LargeTopWidget({ data, settings, carImageUrl }: { data: VehicleData; se
           </VStack>
           </HStack>
           <VStack alignment="leading" spacing={4} frame={{ width: 174 }} offset={{ x: 5, y: 0 }}>
-            <Row icon={isLocked ? "lock.shield" : "xmark.shield"} value={`${isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`} iconColor={isLocked ? "systemGreen" : "systemRed"} lineLimit={1} textOpacity={0.5} />
+            <Row icon={driving ? "car.fill" : isLocked ? "lock.shield" : "xmark.shield"} value={`${driving ? "行驶中" : isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`} iconColor={driving ? "systemBlue" : isLocked ? "systemGreen" : "systemRed"} lineLimit={1} textOpacity={0.5} />
             <Row icon="location" value={address} iconColor="systemBlue" lineLimit={2} textOpacity={0.5} />
           </VStack>
         </VStack>
@@ -335,9 +349,10 @@ function LoadingWidget({ message }: { message: string }) {
 
 function SmallWidget({ data, settings, carImageUrl }: { data: VehicleData; settings: Settings; carImageUrl: string }) {
   const p: any = data.properties || {}
+  const driving = data.snapshot?.driving === true || String(p.pwf || "").toUpperCase() === "DRIVING"
   const isLocked = (p.doorsState?.combinedSecurityState || "UNLOCKED") !== "UNLOCKED"
   const plate = settings.licensePlate || data.licensePlate || hidden(data.vin)
-  const smallStatus = `${isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`
+  const smallStatus = `${driving ? "行驶中" : isLocked ? "已上锁" : "已解锁"} ${formatStatus(p.lastUpdatedAt)} 更新`
   return <VStack alignment="center" spacing={3} frame={{ maxWidth: Infinity, maxHeight: Infinity }} padding={8} widgetBackground={{ style: { light: "#B8DCFF", dark: "#0B2D52" }, shape: "concentricRect" }}>
     <HStack alignment="center" spacing={6} frame={{ maxWidth: Infinity }}>
       <Link url={appleMapsNavigationURL(p) || "maps:"}>
@@ -348,7 +363,7 @@ function SmallWidget({ data, settings, carImageUrl }: { data: VehicleData; setti
       <Image imageUrl={settings.customLogoImage || DEFAULT_LOGO_LIGHT} resizable scaleToFit frame={{ width: 28, height: 18 }} />
     </HStack>
     <VehicleContent data={data} settings={settings} carImageUrl={carImageUrl} compact />
-    <Row icon={isLocked ? "lock.shield" : "xmark.shield"} value={smallStatus} iconColor={isLocked ? "systemGreen" : "systemRed"} font="caption2" lineLimit={1} textOpacity={0.5} />
+    <Row icon={driving ? "car.fill" : isLocked ? "lock.shield" : "xmark.shield"} value={smallStatus} iconColor={driving ? "systemBlue" : isLocked ? "systemGreen" : "systemRed"} font="caption2" lineLimit={1} textOpacity={0.5} />
   </VStack>
 }
 
@@ -365,7 +380,11 @@ function LargeWidget({ data, settings, mapImageUrl, carImageUrl }: { data: Vehic
   const mapOpacity = Widget.isTransparentMode ? 0.5 : 1
   return <VStack alignment="leading" spacing={0} padding={0} widgetBackground={{ style: { light: "#B8DCFF", dark: "#0B2D52" }, shape: "concentricRect" }} frame={{ maxWidth: Infinity, maxHeight: Infinity }}>
     <LargeTopWidget data={data} settings={settings} carImageUrl={carImageUrl} />
-    {mapImageUrl ? <Link url={mapURL || "maps:"}><Image imageUrl={mapImageUrl} resizable scaleToFill opacity={mapOpacity} frame={{ maxWidth: Infinity, height: 180 }} offset={{ x: 0, y: 0 }} /></Link> : <Link url={mapURL || "maps:"}><VStack frame={{ maxWidth: Infinity, height: 180 }} alignment="leading" padding={12}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack></Link>}
+    <Link url={mapURL || "maps:"}>
+      <VStack alignment="leading" frame={{ maxWidth: Infinity, height: 180 }}>
+        {mapImageUrl ? <Image imageUrl={mapImageUrl} resizable scaleToFill opacity={mapOpacity} frame={{ maxWidth: Infinity, height: 180 }} /> : <VStack alignment="leading" padding={12} frame={{ maxWidth: Infinity, height: 180 }}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack>}
+      </VStack>
+    </Link>
   </VStack>
 }
 
@@ -388,13 +407,12 @@ async function main() {
     if (!data) { Widget.present(<LoadingWidget message="暂无车辆数据" />); return }
     if (Widget.family === "systemSmall" || Widget.family === "accessoryRectangular") Widget.present(<SmallWidget data={data} settings={settings} carImageUrl={await vehicleImageUrl(data, settings)} />)
     else if (Widget.family === "systemLarge" || Widget.family === "systemExtraLarge") {
+      const properties = data.properties || {}
+      const existingMapUrl = await cachedMapSnapshot(properties, false)
+      const mapPromise = existingMapUrl || !vehicleCoordinate(properties) ? Promise.resolve(existingMapUrl) : createMapSnapshot(properties)
       const carImageUrl = await vehicleImageUrl(data, settings)
-      // 先使用上一张成功地图，避免刷新期间出现透明占位或布局跳动。
-      const previousMapUrl = await cachedMapSnapshot()
-      Widget.present(<LargeWidget data={data} settings={settings} mapImageUrl={previousMapUrl} carImageUrl={carImageUrl} />)
-      createMapSnapshot(data.properties || {}).then(mapImageUrl => {
-        if (mapImageUrl) Widget.reloadAll()
-      }).catch(() => {})
+      const mapUrl = await mapPromise
+      Widget.present(<LargeWidget data={data} settings={settings} mapImageUrl={mapUrl} carImageUrl={carImageUrl} />)
     }
     else Widget.present(<MediumWidget data={data} settings={settings} carImageUrl={await vehicleImageUrl(data, settings)} />)
   } catch (e: any) {
