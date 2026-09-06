@@ -5,7 +5,7 @@ export const BMW_SERVER_HOST = "https://myprofile.bmw.com.cn"
 export const BMW_HEADERS: Record<string, string> = {
   "Content-Type": "application/json; charset=utf-8",
   "Accept": "*/*",
-  "x-user-agent": "ios(17.6.1);bmw;5.14.0(58417);cn",
+  "x-user-agent": "ios(27.0);bmw;6.8.2(50019);cn",
   "Accept-Language": "zh-CN",
   "User-Agent": "Dart/3.2 (dart:io)",
 }
@@ -51,6 +51,7 @@ export const defaultSettings: Required<Omit<Settings, "phone" | "vin" | "customN
 }
 
 export type VehicleSnapshot = {
+  driving?: boolean
   energy: { type: "fuel" | "electric" | "hybrid" | "unknown"; levelPercent?: number; fuelPercent?: number; batteryPercent?: number; remainingLiters?: number; rangeKm?: number }
   access: { lock: "locked" | "unlocked" | "unknown"; doors: string; windows: string; roof: string; hood: string; trunk: string; doorStates: Record<string, string>; windowStates: Record<string, string> }
   checks: Array<{ id: string; severity: "critical" | "warning"; title: string; detail?: string }>
