@@ -170,7 +170,7 @@ function StatusLine({ value, label, kind = "health", compact = false }: { value:
   return (
     <HStack spacing={3}>
       <Image systemName={statusIcon(value, kind)} font={compact ? 10 : 13} foregroundStyle={statusColor(value, kind) as any} />
-      <Text font={compact ? 8 : 10} fontWeight="semibold" foregroundStyle="white" lineLimit={1} minScaleFactor={0.8}>
+      <Text font={compact ? 8 : 10} fontWeight="semibold" foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} lineLimit={1} minScaleFactor={0.8}>
         {label}
       </Text>
     </HStack>
@@ -203,19 +203,21 @@ function MiniChart({ values, color, label, icon, current, suffix = "%", extra, e
   return (
     <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
       <HStack spacing={3} frame={{ maxWidth: "infinity" }}>
-        <Image systemName={icon} font={10} foregroundStyle="white" />
-        <Text font={9} fontWeight="semibold" foregroundStyle="white" lineLimit={1}>{percent(current)}</Text>
-        {extra ? <HStack spacing={2}><Image systemName={extraIcon ?? "thermometer.medium"} font={10} foregroundStyle="white" /><Text font={8} foregroundStyle="white" lineLimit={1}>{extra}</Text></HStack> : null}
+        <Image systemName={icon} font={10} foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} />
+        <Text font={9} fontWeight="semibold" foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} lineLimit={1}>{percent(current)}</Text>
+        {extra ? <HStack spacing={2}><Image systemName={extraIcon ?? "thermometer.medium"} font={10} foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} /><Text font={8} foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} lineLimit={1}>{extra}</Text></HStack> : null}
         <Spacer />
       </HStack>
       <HStack spacing={3} frame={{ maxWidth: "infinity" }}>
         <VStack alignment="trailing" spacing={18} frame={{ width: 26, height: 38 }}>
-          <Text font={7} foregroundStyle="rgba(255,255,255,0.58)">{Math.trunc(chartMax)}{suffix}</Text>
-          <Text font={7} foregroundStyle="rgba(255,255,255,0.58)">{Math.trunc(chartMin)}{suffix}</Text>
+          <Text font={7} foregroundStyle={{ light: "rgba(52,49,61,0.66)", dark: "rgba(255,255,255,0.58)" }}>{Math.trunc(chartMax)}{suffix}</Text>
+          <Text font={7} foregroundStyle={{ light: "rgba(52,49,61,0.66)", dark: "rgba(255,255,255,0.58)" }}>{Math.trunc(chartMin)}{suffix}</Text>
         </VStack>
         <Canvas opaque={false} frame={{ height: 38, maxWidth: "infinity" }} draw={(ctx, size) => {
           ctx.clearRect(0, 0, size.width, size.height)
-          ctx.strokeStyle = "rgba(255,255,255,0.18)"
+          ctx.strokeStyle = Device.colorScheme === "light"
+            ? "rgba(52,49,61,0.35)"
+            : "rgba(255,255,255,0.18)"
           ctx.lineWidth = 1
           ctx.beginPath()
           ctx.moveTo(0, 1)
@@ -249,11 +251,11 @@ function MiniChart({ values, color, label, icon, current, suffix = "%", extra, e
       <HStack spacing={3} frame={{ maxWidth: "infinity" }}>
         <Spacer minLength={29} />
         <HStack spacing={0} frame={{ maxWidth: "infinity" }}>
-          <Text font={7} foregroundStyle="rgba(255,255,255,0.48)" frame={{ maxWidth: "infinity", alignment: "leading" }}>-10m</Text>
-          <Text font={7} foregroundStyle="rgba(255,255,255,0.48)" frame={{ maxWidth: "infinity", alignment: "trailing" }}>0</Text>
+          <Text font={7} foregroundStyle={{ light: "rgba(52,49,61,0.56)", dark: "rgba(255,255,255,0.48)" }} frame={{ maxWidth: "infinity", alignment: "leading" }}>-10m</Text>
+          <Text font={7} foregroundStyle={{ light: "rgba(52,49,61,0.56)", dark: "rgba(255,255,255,0.48)" }} frame={{ maxWidth: "infinity", alignment: "trailing" }}>0</Text>
         </HStack>
       </HStack>
-      {footer ? <Text font={7} foregroundStyle="white" multilineTextAlignment="center" lineLimit={1} minScaleFactor={0.45} frame={{ maxWidth: "infinity", alignment: "center" }}>{footer}</Text> : null}
+      {footer ? <Text font={7} foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} multilineTextAlignment="center" lineLimit={1} minScaleFactor={0.45} frame={{ maxWidth: "infinity", alignment: "center" }}>{footer}</Text> : null}
     </VStack>
   )
 }
@@ -261,11 +263,18 @@ function MiniChart({ values, color, label, icon, current, suffix = "%", extra, e
 export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
   const isSmall = Widget.family === "systemSmall"
   const hasUpgrade = snapshot.homebridgeUtd === false || snapshot.pluginsUtd === false || snapshot.nodeUtd === false
-  const purple = gradient("linear", {
-    colors: ["#421367", "#7a04d4"],
-    startPoint: "topLeading",
-    endPoint: "bottomTrailing"
-  })
+  const background = {
+    light: gradient("linear", {
+      colors: ["#87CEEB", "#4A90C2"],
+      startPoint: "bottomTrailing",
+      endPoint: "topLeading"
+    }),
+    dark: gradient("linear", {
+      colors: ["#35104f", "#6800a8"],
+      startPoint: "topLeading",
+      endPoint: "bottomTrailing"
+    })
+  }
 
   return (
     <VStack
@@ -273,7 +282,7 @@ export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
       spacing={isSmall ? 6 : 7}
       padding={{ top: 12, bottom: 12, leading: 13, trailing: 13 }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-      widgetBackground={{ style: purple, shape: "concentricRect" }}
+      widgetBackground={{ style: background, shape: "concentricRect" }}
       widgetURL={hasUpgrade ? config.baseUrl : undefined}
     >
       <HStack spacing={5} frame={{ maxWidth: "infinity", alignment: "leading" }}>
@@ -284,8 +293,8 @@ export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
           frame={{ width: 24, height: 24 }}
         />
         <VStack alignment="leading" spacing={0}>
-          <Text font={14} fontWeight="bold" foregroundStyle="white">Homebridge</Text>
-          <Text font={8} foregroundStyle="rgba(255,255,255,0.68)">STATUS MONITOR</Text>
+          <Text font={14} fontWeight="bold" foregroundStyle={{ light: "#34313D", dark: "#ffffff" }}>Homebridge</Text>
+          <Text font={8} foregroundStyle={{ light: "rgba(52,49,61,0.72)", dark: "rgba(255,255,255,0.68)" }}>STATUS MONITOR</Text>
         </VStack>
         <Spacer minLength={20} />
         {!isSmall ? <StatusGrid snapshot={snapshot} compact /> : <Image systemName={snapshot.running ? "checkmark.seal.fill" : "xmark.seal.fill"} font={17} foregroundStyle={snapshot.running ? "systemGreen" : "systemRed"} />}
@@ -293,8 +302,8 @@ export default function HomebridgeWidget({ snapshot }: { snapshot: Snapshot }) {
 
       {snapshot.error ? (
         <VStack alignment="leading" spacing={3}>
-          <Text font={10} foregroundStyle="white" lineLimit={3}>{snapshot.error}</Text>
-          <Text font={8} foregroundStyle="rgba(255,255,255,0.65)">请检查地址、密码及网络连接</Text>
+          <Text font={10} foregroundStyle={{ light: "#34313D", dark: "#ffffff" }} lineLimit={3}>{snapshot.error}</Text>
+          <Text font={8} foregroundStyle={{ light: "rgba(52,49,61,0.72)", dark: "rgba(255,255,255,0.65)" }}>请检查地址、密码及网络连接</Text>
         </VStack>
       ) : (
         <>
