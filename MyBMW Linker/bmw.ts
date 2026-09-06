@@ -52,6 +52,7 @@ function compactVehicleState(state: any): any {
   const address = compactObject(location?.address, ["formatted"])
   const checks = Array.isArray(state?.checkControlMessages) ? state.checkControlMessages.map((item: any) => compactObject(item, ["id", "type", "name", "title", "text", "localizedText", "description", "message", "severity"])) : []
   return {
+    ...(state?.pwf !== undefined ? { pwf: state.pwf } : {}),
     ...(state?.vehicleType !== undefined ? { vehicleType: state.vehicleType } : {}),
     ...(state?.currentMileage !== undefined ? { currentMileage: state.currentMileage } : {}),
     ...(state?.lastUpdatedAt !== undefined ? { lastUpdatedAt: state.lastUpdatedAt } : {}),
@@ -92,6 +93,7 @@ function normalizeVehicleSnapshot(vehicle: VehicleData, profileVehicleType?: "BE
   const latitude = finiteNumber(coordinates?.latitude)
   const longitude = finiteNumber(coordinates?.longitude)
   return {
+    driving: String(p.pwf || "").toUpperCase() === "DRIVING",
     energy: { type, levelPercent, fuelPercent, batteryPercent, remainingLiters: finiteNumber(fuel.remainingFuelLiters), rangeKm: finiteNumber(electric.range ?? fuel.range) },
     access: { lock: doors.combinedSecurityState === "LOCKED" ? "locked" : doors.combinedSecurityState === "UNLOCKED" ? "unlocked" : "unknown", doors: knownState(doors.combinedState), windows: knownState(windows.combinedState), roof: knownState(roof.roofState), hood: knownState(doors.hood), trunk: knownState(doors.trunk), doorStates: { leftFront: knownState(doors.leftFront), rightFront: knownState(doors.rightFront), leftRear: knownState(doors.leftRear), rightRear: knownState(doors.rightRear) }, windowStates: { leftFront: knownState(windows.leftFront), rightFront: knownState(windows.rightFront), leftRear: knownState(windows.leftRear), rightRear: knownState(windows.rightRear) } },
     checks,
