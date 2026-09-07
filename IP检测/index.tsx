@@ -13,12 +13,23 @@ import {
   Section,
   Spacer,
   Text,
+  Toggle,
+  Widget,
   modifiers,
   useEffect,
   useObservable,
   useState,
 } from "scripting"
-import { calculateRiskValue, fetchChinaIP, fetchIPInfo, formatIPLocation, IPInfo } from "./utils/ip"
+import {
+  calculateRiskValue,
+  fetchChinaIP,
+  fetchIPInfo,
+  formatIPAddress,
+  formatIPLocation,
+  getPrivacyMode,
+  setPrivacyMode,
+  IPInfo,
+} from "./utils/ip"
 import { approximateRadiusMeters, hasCoordinates } from "./utils/map"
 
 type PageState = {
@@ -103,6 +114,7 @@ function LocationMap({ info }: { info: IPInfo }) {
 
 function IPPage() {
   const dismiss = Navigation.useDismiss()
+  const [privacyMode, setPrivacyModeState] = useState(getPrivacyMode())
   const [state, setState] = useState<PageState>({
     loading: true,
     error: null,
@@ -112,6 +124,12 @@ function IPPage() {
     isNative: "未知",
     vpnStatus: "未知",
   })
+
+  function updatePrivacyMode(enabled: boolean) {
+    setPrivacyMode(enabled)
+    setPrivacyModeState(enabled)
+    Widget.reloadUserWidgets()
+  }
 
   async function refresh() {
     setState((prev) => ({ ...prev, loading: true, error: null }))
@@ -181,7 +199,9 @@ function IPPage() {
           <HStack>
             <Text>IP</Text>
             <Spacer />
-            <Text fontWeight="semibold">{info?.query ?? (state.loading ? "加载中…" : "—")}</Text>
+            <Text fontWeight="semibold">
+              {info ? formatIPAddress(info.query, privacyMode) : (state.loading ? "加载中…" : "—")}
+            </Text>
           </HStack>
           <HStack>
             <Text>位置</Text>
@@ -202,6 +222,18 @@ function IPPage() {
               </Text>
             </HStack>
           ) : null}
+        </Section>
+
+        <Section
+          header={<Text>隐私</Text>}
+          footer={<Text>开启后 IPv4 仅显示前两段，IPv6 仅显示 /64 网络前缀；关闭后显示完整地址。</Text>}
+        >
+          <Toggle
+            title="隐私模式"
+            systemImage="eye.slash"
+            value={privacyMode}
+            onChanged={updatePrivacyMode}
+          />
         </Section>
 
         <Section header={<Text>状态</Text>}>
