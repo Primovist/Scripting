@@ -14,7 +14,15 @@ import {
   modifiers,
 } from "scripting"
 import { RefreshIPIntent } from "./app_intents"
-import { calculateRiskValue, fetchChinaIP, fetchIPInfo, formatIPLocation, IPInfo } from "./utils/ip"
+import {
+  calculateRiskValue,
+  fetchChinaIP,
+  fetchIPInfo,
+  formatIPAddress,
+  formatIPLocation,
+  getPrivacyMode,
+  IPInfo,
+} from "./utils/ip"
 import { hasCoordinates, takeIPMapSnapshot } from "./utils/map"
 
 export interface WidgetProps {
@@ -331,6 +339,7 @@ function DashboardWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
   const info = props.ipInfo!
   const layout = props.layout
   const location = formatIPLocation(info)
+  const displayIP = formatIPAddress(info.query, getPrivacyMode())
   const asn = info.as || info.org || info.isp || "未知 ASN"
   const accessType = props.isHomeBroadband === "家宽" ? "住宅 IP" : "机房 / 商用 IP"
   const status = layout.medium
@@ -362,7 +371,7 @@ function DashboardWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
             <Spacer />
             <VStack alignment="leading" spacing={10}>
               <DataRow icon="mappin.and.ellipse" label="位置" value={location} width={layout.leftWidth} />
-              <DataRow icon="network" label="IP" value={info.query} width={layout.leftWidth} />
+              <DataRow icon="network" label="IP" value={displayIP} width={layout.leftWidth} />
               <DataRow icon="building.2" label="ASN" value={asn} width={layout.leftWidth} />
               <DataRow icon="antenna.radiowaves.left.and.right" label="ISP" value={info.isp || "未知网络"} width={layout.leftWidth} />
             </VStack>
@@ -408,7 +417,7 @@ function DashboardWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
             IP信息概览
           </Text>
           <DataRow compact={layout.medium} icon="mappin.and.ellipse" label="位置" value={location} width={layout.leftWidth} />
-          <DataRow compact={layout.medium} icon="network" label="IP" value={info.query} width={layout.leftWidth} />
+          <DataRow compact={layout.medium} icon="network" label="IP" value={displayIP} width={layout.leftWidth} />
           <DataRow compact={layout.medium} icon="building.2" label="ASN" value={asn} width={layout.leftWidth} />
           <RiskGauge
             compact={layout.medium}
@@ -435,6 +444,7 @@ function DashboardWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
 function CompactWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
   const info = props.ipInfo!
   const location = formatIPLocation(info)
+  const displayIP = formatIPAddress(info.query, getPrivacyMode())
   const accessType = props.isHomeBroadband === "家宽" ? "住宅 IP" : "非住宅 IP"
   const height = Math.max(118, props.widgetSize.height - 24)
 
@@ -456,7 +466,7 @@ function CompactWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
         <Spacer />
         <DataRow compact icon="mappin.and.ellipse" value={location} width={props.layout.leftWidth} />
         <Spacer />
-        <DataRow compact icon="network" value={info.query} width={props.layout.leftWidth} />
+        <DataRow compact icon="network" value={displayIP} width={props.layout.leftWidth} />
         <Spacer />
         <RiskGauge compact value={props.riskValue} width={props.layout.gaugeWidth} />
         <Spacer />
