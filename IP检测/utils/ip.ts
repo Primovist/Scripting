@@ -24,6 +24,51 @@ export interface IPInfo {
   lon: number;
 }
 
+export const PRIVACY_MODE_KEY = "ip-detection.privacy-mode"
+
+export function getPrivacyMode(): boolean {
+  return Storage.get<boolean>(PRIVACY_MODE_KEY, { shared: true }) ?? true
+}
+
+export function setPrivacyMode(enabled: boolean): boolean {
+  return Storage.set(PRIVACY_MODE_KEY, enabled, { shared: true })
+}
+
+function expandIPv6(address: string): string[] | null {
+  const source = address.split("%")[0].toLowerCase()
+  const sections = source.split("::")
+  if (sections.length > 2) return null
+
+  const left = sections[0] ? sections[0].split(":") : []
+  const right = sections.length === 2 && sections[1] ? sections[1].split(":") : []
+  const missing = 8 - left.length - right.length
+  if (missing < 0 || (sections.length === 1 && missing !== 0)) return null
+
+  const groups = sections.length === 2
+    ? [...left, ...Array(missing).fill("0"), ...right]
+    : left
+
+  if (groups.length !== 8 || groups.some((group) => !/^[0-9a-f]{1,4}$/.test(group))) return null
+  return groups.map((group) => group.padStart(4, "0"))
+}
+
+export function formatIPAddress(address: string | null | undefined, privacyMode = getPrivacyMode()): string {
+  if (!address) return "—"
+  if (!privacyMode) return address
+
+  const ipv4 = address.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (ipv4) return `${ipv4[1]}.${ipv4[2]}.x.x`
+
+  if (address.includes(":")) {
+    const groups = expandIPv6(address)
+    if (groups) {
+      return `${groups.slice(0, 4).join(":")}::/64`
+    }
+  }
+
+  return address
+}
+
 export function formatIPLocation(
   info: Pick<IPInfo, "country" | "countryCode" | "regionName" | "city"> | null | undefined,
   fallback = "未知位置"
