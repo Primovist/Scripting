@@ -183,6 +183,18 @@ function RiskGauge({
   )
 }
 
+function widgetRootModifiers() {
+  const root = modifiers()
+
+  if (!Widget.isTransparentMode) {
+    root.widgetBackground(COLORS.background)
+  }
+
+  return root
+    .ignoresSafeArea()
+    .frame({ maxWidth: "infinity", maxHeight: "infinity" })
+}
+
 function FullMapBackground(props: WidgetProps) {
   const size = props.widgetSize
   const transparentMode = Widget.isTransparentMode
@@ -210,26 +222,27 @@ function FullMapBackground(props: WidgetProps) {
               scaleToFill
               frame={size}
               position={mapCenter}
-            />
-            <Rectangle
-              fill={{
-                gradient: [
-                  { color: "rgba(0,0,0,1.00)", location: 0.00 },
-                  { color: "rgba(0,0,0,0.99)", location: Math.max(0, revealStart - 0.14) },
-                  { color: "rgba(0,0,0,0.94)", location: revealStart },
-                  { color: "rgba(0,0,0,0.82)", location: revealStart + (revealMid - revealStart) * 0.45 },
-                  { color: "rgba(0,0,0,0.64)", location: revealMid },
-                  { color: "rgba(0,0,0,0.43)", location: revealMid + (revealEnd - revealMid) * 0.45 },
-                  { color: "rgba(0,0,0,0.24)", location: revealEnd },
-                  { color: "rgba(0,0,0,0.10)", location: revealEnd + (1 - revealEnd) * 0.42 },
-                  { color: "rgba(0,0,0,0.03)", location: revealEnd + (1 - revealEnd) * 0.72 },
-                  { color: "rgba(0,0,0,0.00)", location: 1.00 },
-                ],
-                startPoint: { x: 0, y: 0.5 },
-                endPoint: { x: 1, y: 0.5 },
-              }}
-              blendMode="destinationOut"
-              frame={size}
+              modifiers={modifiers().mask(
+                <Rectangle
+                  fill={{
+                    gradient: [
+                      { color: "rgba(255,255,255,0.00)", location: 0.00 },
+                      { color: "rgba(255,255,255,0.01)", location: Math.max(0, revealStart - 0.14) },
+                      { color: "rgba(255,255,255,0.06)", location: revealStart },
+                      { color: "rgba(255,255,255,0.18)", location: revealStart + (revealMid - revealStart) * 0.45 },
+                      { color: "rgba(255,255,255,0.36)", location: revealMid },
+                      { color: "rgba(255,255,255,0.57)", location: revealMid + (revealEnd - revealMid) * 0.45 },
+                      { color: "rgba(255,255,255,0.76)", location: revealEnd },
+                      { color: "rgba(255,255,255,0.90)", location: revealEnd + (1 - revealEnd) * 0.42 },
+                      { color: "rgba(255,255,255,0.97)", location: revealEnd + (1 - revealEnd) * 0.72 },
+                      { color: "rgba(255,255,255,1.00)", location: 1.00 },
+                    ],
+                    startPoint: { x: 0, y: 0.5 },
+                    endPoint: { x: 1, y: 0.5 },
+                  }}
+                  frame={size}
+                />
+              )}
             />
           </ZStack>
         ) : (
@@ -330,11 +343,7 @@ function DashboardWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
       <Button
         intent={RefreshIPIntent(undefined)}
         buttonStyle="plain"
-        modifiers={modifiers()
-          .widgetBackground(COLORS.background)
-          .ignoresSafeArea()
-          .frame({ maxWidth: "infinity", maxHeight: "infinity" })
-        }
+        modifiers={widgetRootModifiers()}
       >
         <ZStack alignment="topLeading" frame={props.widgetSize}>
           <FullMapBackground {...props} />
@@ -376,11 +385,7 @@ function DashboardWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
     <Button
       intent={RefreshIPIntent(undefined)}
       buttonStyle="plain"
-      modifiers={modifiers()
-        .widgetBackground(COLORS.background)
-        .ignoresSafeArea()
-        .frame({ maxWidth: "infinity", maxHeight: "infinity" })
-      }
+      modifiers={widgetRootModifiers()}
     >
       <ZStack alignment="topLeading" frame={props.widgetSize}>
         <FullMapBackground {...props} />
@@ -437,11 +442,7 @@ function CompactWidget(props: WidgetProps & { layout: Layout }): VirtualNode {
     <Button
       intent={RefreshIPIntent(undefined)}
       buttonStyle="plain"
-      modifiers={modifiers()
-        .widgetBackground(COLORS.background)
-        .ignoresSafeArea()
-        .frame({ maxWidth: "infinity", maxHeight: "infinity" })
-      }
+      modifiers={widgetRootModifiers()}
     >
       <ZStack alignment="topLeading" frame={props.widgetSize}>
         <FullMapBackground {...props} />
@@ -477,10 +478,7 @@ function EmptyWidget({ message }: { message: string }) {
     <VStack
       alignment="center"
       spacing={8}
-      modifiers={modifiers()
-        .widgetBackground(COLORS.background)
-        .frame({ maxWidth: "infinity", maxHeight: "infinity" })
-      }
+      modifiers={widgetRootModifiers()}
     >
       <Image systemName="network.slash" font={24} foregroundStyle={COLORS.red} />
       <Text foregroundStyle={COLORS.secondary}>{message}</Text>
