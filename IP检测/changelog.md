@@ -2,6 +2,24 @@
 
 本文档记录 IP检测 的主要版本更新。
 
+## [1.2.3] - 2026-09-07
+
+### 修复
+
+- 将透明模式状态判断改回 `Widget.isTransparentMode`，确保与当前 Scripting 小组件透明模式配置保持一致。
+- 保留透明模式下不设置纯色 `widgetBackground` 的根视图处理，避免覆盖系统透明背景。
+- 透明地图继续使用 Alpha 多节点渐变 `mask`，实现从左侧透明到右侧完整显示的平滑过渡。
+
+
+## [1.2.2] - 2026-09-07
+
+### 修复
+
+- 修复透明背景状态判断错误，改用 `Widget.isTransparentBackground`。
+- 新增统一的 `widgetRootModifiers()`，透明模式下不再设置纯色 `widgetBackground`，避免覆盖系统透明层。
+- 将透明模式地图从不受支持的 `destinationOut` 混合方式改为 Alpha 渐变 `mask`，实现从左侧透明到右侧完整显示的平滑过渡。
+
+
 ## [1.2.1] - 2026-09-07
 
 ### 修正
