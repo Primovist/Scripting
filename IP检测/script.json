@@ -1,49 +1,49 @@
 {
-  "remoteResource" : {
-    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/IP检测",
-    "hash" : "70706fd5b685faa1bf361863604c199f",
-    "autoUpdateInterval" : null
+  "localizedNames" : {
+    "fr" : "",
+    "en" : "",
+    "ru" : "",
+    "it" : "",
+    "ja" : "",
+    "es" : "",
+    "zh" : "",
+    "de" : "",
+    "pt" : ""
   },
-  "iconImage" : "",
-  "intentInputTypes" : [
-
-  ],
-  "icon" : "antenna.radiowaves.left.and.right",
+  "name" : "IP检测",
+  "runInApp" : false,
+  "author" : {
+    "name" : "LChen",
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "email" : "lchen@lchen.ac.cn"
+  },
+  "description" : "智能IP检测工具，支持VPN\/代理状态、风险评分与城市级地图展示",
   "entry" : "index.tsx",
   "contributors" : [
 
   ],
-  "name" : "IP检测",
-  "runInApp" : false,
-  "version" : "1.2.3",
+  "version" : "1.3.0",
   "localizedDescriptions" : {
     "en" : "",
-    "es" : "",
-    "ru" : "",
-    "fr" : "",
     "zh" : "",
-    "it" : "",
-    "ja" : "",
-    "de" : "",
-    "pt" : ""
-  },
-  "permissions" : null,
-  "localizedNames" : {
-    "fr" : "",
-    "en" : "",
-    "zh" : "",
-    "ru" : "",
     "ja" : "",
     "pt" : "",
-    "de" : "",
+    "ru" : "",
     "it" : "",
-    "es" : ""
+    "es" : "",
+    "fr" : "",
+    "de" : ""
   },
+  "iconImage" : "",
+  "remoteResource" : {
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/IP检测",
+    "hash" : "8fd6dbf0697278193656a62be53efcf2",
+    "autoUpdateInterval" : null
+  },
+  "permissions" : null,
   "color" : "rgba(174, 109, 216, 1)",
-  "author" : {
-    "email" : "lchen@lchen.ac.cn",
-    "homepage" : "https:\/\/github.com\/Primovist",
-    "name" : "LChen"
-  },
-  "description" : "智能IP检测工具，支持VPN\/代理状态、风险评分与城市级地图展示"
+  "intentInputTypes" : [
+
+  ],
+  "icon" : "antenna.radiowaves.left.and.right"
 }
