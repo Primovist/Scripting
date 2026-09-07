@@ -1,49 +1,49 @@
 {
-  "permissions" : null,
-  "color" : "rgba(174, 109, 216, 1)",
-  "contributors" : [
-
-  ],
-  "localizedNames" : {
-    "ja" : "",
-    "en" : "",
-    "ru" : "",
-    "it" : "",
-    "zh" : "",
-    "pt" : "",
-    "de" : "",
-    "es" : "",
-    "fr" : ""
-  },
-  "entry" : "index.tsx",
-  "author" : {
-    "email" : "lchen@lchen.ac.cn",
-    "name" : "LChen",
-    "homepage" : "https:\/\/github.com\/Primovist"
-  },
-  "version" : "1.2.0",
-  "name" : "IP检测",
-  "icon" : "antenna.radiowaves.left.and.right",
-  "intentInputTypes" : [
-
-  ],
-  "runInApp" : false,
-  "localizedDescriptions" : {
-    "ja" : "",
-    "pt" : "",
-    "es" : "",
-    "it" : "",
-    "ru" : "",
-    "en" : "",
-    "zh" : "",
-    "fr" : "",
-    "de" : ""
-  },
   "remoteResource" : {
-    "url" : "https:\/\/github.com\/Augus2008\/JavaScript\/tree\/main\/IP检测",
-    "hash" : "186e010349c32b36fcc04acc7f62010c",
+    "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/IP检测",
+    "hash" : "70706fd5b685faa1bf361863604c199f",
     "autoUpdateInterval" : null
   },
   "iconImage" : "",
+  "intentInputTypes" : [
+
+  ],
+  "icon" : "antenna.radiowaves.left.and.right",
+  "entry" : "index.tsx",
+  "contributors" : [
+
+  ],
+  "name" : "IP检测",
+  "runInApp" : false,
+  "version" : "1.2.1",
+  "localizedDescriptions" : {
+    "en" : "",
+    "es" : "",
+    "ru" : "",
+    "fr" : "",
+    "zh" : "",
+    "it" : "",
+    "ja" : "",
+    "de" : "",
+    "pt" : ""
+  },
+  "permissions" : null,
+  "localizedNames" : {
+    "fr" : "",
+    "en" : "",
+    "zh" : "",
+    "ru" : "",
+    "ja" : "",
+    "pt" : "",
+    "de" : "",
+    "it" : "",
+    "es" : ""
+  },
+  "color" : "rgba(174, 109, 216, 1)",
+  "author" : {
+    "email" : "lchen@lchen.ac.cn",
+    "homepage" : "https:\/\/github.com\/Primovist",
+    "name" : "LChen"
+  },
   "description" : "智能IP检测工具，支持VPN\/代理状态、风险评分与城市级地图展示"
 }
