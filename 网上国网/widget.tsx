@@ -323,7 +323,14 @@ function SmallStepProgress({ totalYearPq, settings }: { totalYearPq: number; set
 }
 
 function MediumStepProgress({ totalYearPq, settings, lastUpdateTime, compact = false }: { totalYearPq: number; settings: SGCCSettings; lastUpdateTime: number; compact?: boolean }) {
-  const { totalBars, barsPerTier, activeBars, labelText } = getStepProgress(totalYearPq, settings, compact ? 100 : 45)
+  const { level, totalBars, barsPerTier, activeBars, labelText } = getStepProgress(totalYearPq, settings, compact ? 100 : 45)
+  const stageRemaining = level === 1
+    ? Math.max(0, settings.oneLevelPq - totalYearPq)
+    : level === 2
+      ? Math.max(0, settings.twoLevelPq - totalYearPq)
+      : 0
+  const lastUpdateDate = new Date(lastUpdateTime || Date.now())
+  const lastUpdateTimeString = lastUpdateDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
 
   const bars: JSX.Element[] = []
 
@@ -372,9 +379,6 @@ function MediumStepProgress({ totalYearPq, settings, lastUpdateTime, compact = f
     )
   }
 
-  const d = new Date(lastUpdateTime)
-  const timeString = d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
-
   return (
     <ZStack alignment="center">
       <RoundedRectangle cornerRadius={rpt(6)} style="continuous" fill={isTransparentWidget ? ("clear" as any) : { light: "rgba(0, 112, 107, 0.05)", dark: "rgba(4, 96, 91, 0.15)" }} frame={{ maxWidth: Infinity, maxHeight: Infinity }} />
@@ -382,9 +386,15 @@ function MediumStepProgress({ totalYearPq, settings, lastUpdateTime, compact = f
         <HStack alignment="center">
           <Text font={rpt(8)} foregroundStyle={C.textSecondary}>{labelText}</Text>
           <Spacer />
+          {level < 3 ? (
+            <>
+              <Text font={rpt(8)} foregroundStyle={C.textSecondary} lineLimit={1}>剩余{stageRemaining.toFixed(0)}度</Text>
+              <Spacer />
+            </>
+          ) : null}
           <HStack spacing={2} alignment="center">
             <Image systemName="clock.arrow.circlepath" resizable frame={{ width: rpt(8), height: rpt(8) }} foregroundStyle={C.textSecondary} />
-            <Text font={rpt(8)} foregroundStyle={C.textSecondary}>{timeString}</Text>
+            <Text font={rpt(8)} foregroundStyle={C.textSecondary}>{lastUpdateTimeString}</Text>
           </HStack>
         </HStack>
         <HStack spacing={0} alignment="center">
@@ -550,7 +560,12 @@ function LineChart({ data, height = 120, isMonthly = false }: { data: BarData[];
 function WidgetView({ displayData, barData, largeWidgetData, settings, logoPath, rawData }: any) {
   const family = Widget.family
   const isTransparent = isTransparentWidget
-  const { balance, hasArrear, lastBill, lastUsage, yearBill, yearUsage, totalYearPq } = displayData
+  const { balance, hasArrear, isPostPaid, lastBill, lastUsage, yearBill, yearUsage, totalYearPq, latestDailyUsage } = displayData
+  const showLatestUsage = family === 'systemMedium' && isPostPaid
+  const primaryFeeLabel = showLatestUsage ? '近期用量' : (isPostPaid ? '上期电费' : (!hasArrear ? '剩余电费' : '待缴电费'))
+  const primaryFeeValue = showLatestUsage ? Number(latestDailyUsage || 0).toFixed(2) : (isPostPaid ? lastBill : balance)
+  const lastUpdateDate = new Date(displayData.lastUpdateTime || Date.now())
+  const lastUpdateTimeString = lastUpdateDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
 
   const Logo = () => logoPath ? (
     <Image filePath={logoPath} resizable frame={{ width: rpt(30), height: rpt(30) }} clipShape={{ type: "capsule", style: "continuous" }} />
@@ -621,9 +636,9 @@ function WidgetView({ displayData, barData, largeWidgetData, settings, logoPath,
 
           {/* Bottom Info */}
           <VStack alignment="leading" spacing={2}>
-            <Text font={rpt(12)} foregroundStyle={C.textSecondary}>{lastBill !== "0.00" ? `余额(上期:${lastBill})` : '剩余电费'}</Text>
+            <Text font={rpt(12)} foregroundStyle={C.textSecondary}>{primaryFeeLabel}</Text>
             <HStack alignment="center">
-              <Text font={rpt(24)} fontWeight="bold" fontDesign="rounded" foregroundStyle={C.textPrimary} minScaleFactor={0.5} lineLimit={1}>{balance}</Text>
+              <Text font={rpt(24)} fontWeight="bold" fontDesign="rounded" foregroundStyle={C.textPrimary} minScaleFactor={0.5} lineLimit={1}>{primaryFeeValue}</Text>
               <Spacer />
               <Logo />
             </HStack>
@@ -640,25 +655,43 @@ function WidgetView({ displayData, barData, largeWidgetData, settings, logoPath,
     const chartData = largeWidgetData || barData
     const rangeLabel = settings.largeWidgetRange === '12months' ? '近一年用电趋势' :
       settings.largeWidgetRange === '30days' ? '近一月用电趋势' : '近一周用电趋势'
+    // 组件总宽度减去外层左右各 16 点，得到标题栏宽度。
+    // 标题栏再扣除左右各 5 点内边距，得到内部内容宽度。
+    const headerWidth = Math.max(0, Widget.displaySize.width - 32)
+    const headerContentWidth = Math.max(0, headerWidth - 10)
 
     return (
       <VStack
         padding={16}
-        alignment="leading"
+        alignment="center"
         widgetBackground={isTransparentWidget ? undefined : C.bgCard}
         spacing={8}
       >
         {/* 标题栏 */}
-        <HStack alignment="center" padding={{ leading: 5 }}>
-          {logoPath ? (
-            <Image filePath={logoPath} resizable frame={{ width: 28, height: 28 }} clipShape={{ type: "capsule", style: "continuous" }} />
-          ) : (
-            <Image systemName="bolt.circle.fill" resizable frame={{ width: 28, height: 28 }} foregroundStyle={C.teal} />
-          )}
-          <Text font={16} fontWeight="semibold" foregroundStyle={C.textPrimary}>{rangeLabel}</Text>
-          <Spacer />
-          <Text font={12} foregroundStyle={C.textSecondary}>{!hasArrear ? '余额' : '欠费'}: {balance}元</Text>
-        </HStack>
+        <ZStack
+          frame={{ width: headerWidth }}
+          padding={{ horizontal: 5 }}
+        >
+          <HStack
+            alignment="center"
+            frame={{ width: headerContentWidth }}
+          >
+            {logoPath ? (
+              <Image filePath={logoPath} resizable frame={{ width: 28, height: 28 }} clipShape={{ type: "capsule", style: "continuous" }} />
+            ) : (
+              <Image systemName="bolt.circle.fill" resizable frame={{ width: 28, height: 28 }} foregroundStyle={C.teal} />
+            )}
+            <Text font={16} fontWeight="semibold" foregroundStyle={C.textPrimary}>{rangeLabel}</Text>
+            <Spacer />
+          </HStack>
+          <Text
+            font={12}
+            foregroundStyle={C.textSecondary}
+            frame={{ width: headerContentWidth, alignment: "trailing" }}
+          >
+            {isPostPaid ? '上期电费' : (!hasArrear ? '余额' : '欠费')}: {primaryFeeValue}元
+          </Text>
+        </ZStack>
 
         {/* 折线图 - 占满剩余空间 */}
         <ZStack alignment="center" frame={{ maxWidth: Infinity, maxHeight: Infinity }}>
@@ -703,8 +736,8 @@ function WidgetView({ displayData, barData, largeWidgetData, settings, logoPath,
             <VStack alignment="center" spacing={rpt(2)}>
               {/* @ts-ignore */}
               <Image filePath={logoPath} frame={{ width: rpt(30), height: rpt(30) }} cornerRadius={rpt(15) as any} resizable />
-              <Text font={rpt(10)} foregroundStyle={C.textSecondary}>{!hasArrear ? '剩余电费' : '待缴电费'}</Text>
-              <Text font={rpt(22)} fontWeight="heavy" fontDesign="rounded" foregroundStyle={C.textPrimary} lineLimit={1} minScaleFactor={0.5}>{balance}</Text>
+              <Text font={rpt(10)} foregroundStyle={C.textSecondary}>{primaryFeeLabel}</Text>
+              <Text font={rpt(22)} fontWeight="heavy" fontDesign="rounded" foregroundStyle={C.textPrimary} lineLimit={1} minScaleFactor={0.5}>{primaryFeeValue}</Text>
             </VStack>
             <Spacer />
             <BarChart data={barData} />
