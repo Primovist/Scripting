@@ -133,18 +133,30 @@ function SettingsView() {
         </Section>
 
         <Section header={<Text>阶梯阈值 (年度)</Text>} footer={<Text font="caption2" foregroundStyle="secondaryLabel">用于计算阶梯电价进度条颜色</Text>}>
-          <TextField
-            title="一阶电量上限"
-            value={oneLevelPq}
-            keyboardType="numberPad"
-            onChanged={setOneLevelPq}
-          />
-          <TextField
-            title="二阶电量上限"
-            value={twoLevelPq}
-            keyboardType="numberPad"
-            onChanged={setTwoLevelPq}
-          />
+          <HStack alignment="center">
+            <Text>一阶电量上限</Text>
+            <Spacer />
+            <TextField
+              title=""
+              value={oneLevelPq}
+              keyboardType="numberPad"
+              multilineTextAlignment="trailing"
+              frame={{ width: 120 } as any}
+              onChanged={setOneLevelPq}
+            />
+          </HStack>
+          <HStack alignment="center">
+            <Text>二阶电量上限</Text>
+            <Spacer />
+            <TextField
+              title=""
+              value={twoLevelPq}
+              keyboardType="numberPad"
+              multilineTextAlignment="trailing"
+              frame={{ width: 120 } as any}
+              onChanged={setTwoLevelPq}
+            />
+          </HStack>
         </Section>
 
         <Section header={<Text>系统</Text>}>
