@@ -302,10 +302,26 @@ function getCurrentMonthDailyUsage(data: any): number {
     .reduce((sum: number, item: any) => sum + (Number(item?.dayElePq) || 0), 0)
 }
 
+/** 获取缓存中日期最近且用量有效的一日电量 */
+function getLatestDailyUsage(data: any): number {
+  const dayList = data.dayElecQuantity31?.sevenEleList || []
+  const latest = dayList
+    .filter((item: any) => String(item?.day || '') && Number.isFinite(Number(item?.dayElePq)))
+    .sort((a: any, b: any) => {
+      const aDay = String(a?.day || '').replace(/\D/g, '')
+      const bDay = String(b?.day || '').replace(/\D/g, '')
+      return bDay.localeCompare(aDay)
+    })[0]
+
+  return latest ? Number(latest.dayElePq) : 0
+}
+
 /** 提取关键展示数据 (余额, 上期, 年度等) */
 export function extractDisplayData(data: any) {
   const balance = data.eleBill?.sumMoney || "0.00"
   const hasArrear = !!data.arrearsOfFees
+  // 后付费账户的 eleBill 会包含 accountBalance 字段。
+  const isPostPaid = Object.prototype.hasOwnProperty.call(data.eleBill || {}, 'accountBalance')
 
   // 上期数据 (优先尝试取最后一月，否则取阶梯数据中的第一项)
   let lastBill = "0.00"
@@ -365,12 +381,14 @@ export function extractDisplayData(data: any) {
   return {
     balance,
     hasArrear,
+    isPostPaid,
     lastBill,
     lastUsage,
     yearBill,
     yearUsage,
     totalYearPq,
     currentMonthUsage: getCurrentMonthDailyUsage(data),
+    latestDailyUsage: getLatestDailyUsage(data),
     lastUpdateTime: data.lastUpdateTime
   }
 }
