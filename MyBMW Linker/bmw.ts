@@ -128,13 +128,18 @@ export class BMWClient {
     return Number(picked || "0").toString(36)
   }
 
-  async getNonceData(username: string, x = 0): Promise<any> {
-    const k = this.getSignature(username || "1381234567890")
-    return await requestJSON(`${REMOTE_ROOT}/bmwNonceV5.php?phone=${encodeURIComponent(username)}&k=${k}&x=${x}`, {
+  async getNonceData(username: string, _x = 0): Promise<any> {
+    return await requestJSON(`https://www.widgetc.cn/bmw/api/encryptV5?phone=${encodeURIComponent(username)}`, {
       headers: {
-        xua: BMW_HEADERS["x-user-agent"],
-        fkthiefcopy: "Plagiarism/Copying/Server Runaway Interface Deadly Family",
-        author: "MeiDaiSan",
+        _xua: "android(29);bmw;5.11.0(48081);cn",
+        _sv: "27.0",
+        accept: "*/*",
+        _chl: "appstore",
+        "accept-language": "zh-CN,zh-Hans;q=0.9",
+        _nonce: "lMmJ/p/R110hS9k1qBrMdQ==",
+        "user-agent": "Bimmer/2000501 CFNetwork/3896.100.1.2.1 Darwin/27.0.0",
+        phm: "iPhone18,1(27.0)",
+        _av: "2.0.5",
       },
     })
   }
@@ -404,8 +409,8 @@ export class BMWClient {
     }
   }
 
-  async getData(force = false): Promise<VehicleData | null> {
-    const access = await this.getAccessToken(force)
+  async getData(force = false, forceToken = force): Promise<VehicleData | null> {
+    const access = await this.getAccessToken(forceToken)
     return await this.getVehicleDetails(access, force)
   }
 
