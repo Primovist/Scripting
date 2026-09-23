@@ -1,6 +1,7 @@
-import { HStack, Image, Link, Spacer, Text, VStack, Widget, ZStack, fetch } from "scripting"
+import { HStack, Image, Link, Script, Spacer, Text, VStack, Widget, ZStack, fetch } from "scripting"
 import { BMWClient } from "./bmw"
 import { BMW_HEADERS, BMW_SERVER_HOST, DEFAULT_LOGO_LIGHT, KEYS, type Settings, type VehicleData } from "./constants"
+import { takeVehicleMapSnapshot } from "./map-snapshot"
 import { hidden, keyGet, normalizeSettings, readSettings } from "./storage"
 
 function safeText(v: any, fallback = "--") { return v === undefined || v === null || v === "" ? fallback : String(v) }
@@ -56,48 +57,6 @@ function appleMapsNavigationURL(p: any): string | null {
   const coordinate = vehicleCoordinate(p)
   if (!coordinate) return null
   return `https://maps.apple.com/?daddr=${encodeURIComponent(`${coordinate.latitude},${coordinate.longitude}`)}&dirflg=d`
-}
-
-async function createMapSnapshot(p: any): Promise<string | null> {
-  const coordinate = vehicleCoordinate(p)
-  if (!coordinate) return null
-  const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
-  const coordinateKey = `${coordinate.latitude.toFixed(6)}_${coordinate.longitude.toFixed(6)}`.replace(/[^0-9_-]/g, "_")
-  const appearance = Device.colorScheme === "dark" ? "dark" : "light"
-  const path = `${dir}/vehicle-map-${appearance}-${coordinateKey}.png`
-  const latestPath = `${dir}/vehicle-map-latest-${appearance}.png`
-  await FileManager.createDirectory(dir, true)
-  try {
-    const snap = await MapSnapshotter.take({
-      size: { width: 340, height: 180 },
-      region: { center: coordinate, span: { latitudeDelta: 0.0007, longitudeDelta: 0.0007 } },
-      mapStyle: { style: "standard" },
-      appearance,
-      annotations: [{ coordinate, tintColor: "#2F80ED", glyph: "car.fill" }],
-    })
-    const base64 = snap.image.toPNGBase64String()
-    const data = base64 ? Data.fromBase64String(base64) : null
-    if (!data) return null
-    await FileManager.writeAsData(path, data)
-    await FileManager.writeAsData(latestPath, data)
-    return `file://${path}`
-  } catch {
-    return null
-  }
-}
-
-async function cachedMapSnapshot(p?: any, allowLatest = true): Promise<string | null> {
-  const appearance = Device.colorScheme === "dark" ? "dark" : "light"
-  const coordinate = p ? vehicleCoordinate(p) : null
-  const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
-  if (coordinate) {
-    const coordinateKey = `${coordinate.latitude.toFixed(6)}_${coordinate.longitude.toFixed(6)}`.replace(/[^0-9_-]/g, "_")
-    const exactPath = `${dir}/vehicle-map-${appearance}-${coordinateKey}.png`
-    if (await FileManager.exists(exactPath)) return `file://${exactPath}`
-  }
-  if (!allowLatest) return null
-  const latestPath = `${dir}/vehicle-map-latest-${appearance}.png`
-  return await FileManager.exists(latestPath) ? `file://${latestPath}` : null
 }
 
 function Row({ icon, value, width, iconColor, lineLimit = 1, font = 11, widgetURL, textOpacity }: { icon: string; value: string; width?: number; iconColor?: string; lineLimit?: number; font?: number | "caption2"; widgetURL?: string; textOpacity?: number }) {
@@ -373,7 +332,7 @@ function MediumWidget({ data, settings, carImageUrl }: { data: VehicleData; sett
   </VStack>
 }
 
-function LargeWidget({ data, settings, mapImageUrl, carImageUrl }: { data: VehicleData; settings: Settings; mapImageUrl?: string | null; carImageUrl: string }) {
+function LargeWidget({ data, settings, mapImage, carImageUrl }: { data: VehicleData; settings: Settings; mapImage?: any; carImageUrl: string }) {
   const p: any = data.properties || {}
   const address = p.location?.address?.formatted || "暂无位置"
   const mapURL = appleMapsNavigationURL(p)
@@ -382,7 +341,7 @@ function LargeWidget({ data, settings, mapImageUrl, carImageUrl }: { data: Vehic
     <LargeTopWidget data={data} settings={settings} carImageUrl={carImageUrl} />
     <Link url={mapURL || "maps:"}>
       <VStack alignment="leading" frame={{ maxWidth: Infinity, height: 180 }}>
-        {mapImageUrl ? <Image imageUrl={mapImageUrl} resizable scaleToFill opacity={mapOpacity} frame={{ maxWidth: Infinity, height: 180 }} /> : <VStack alignment="leading" padding={12} frame={{ maxWidth: Infinity, height: 180 }}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack>}
+        {mapImage ? <Image image={mapImage} resizable scaleToFill opacity={mapOpacity} frame={{ maxWidth: Infinity, height: 180 }} /> : <VStack alignment="leading" padding={12} frame={{ maxWidth: Infinity, height: 180 }}><Text font="caption" lineLimit={3} opacity={0.5}>{address}</Text></VStack>}
       </VStack>
     </Link>
   </VStack>
@@ -403,16 +362,24 @@ async function main() {
     return
   }
   try {
-    const data = await new BMWClient(settings).getData(false)
+    const data = await new BMWClient(settings).getData(true, false)
     if (!data) { Widget.present(<LoadingWidget message="暂无车辆数据" />); return }
     if (Widget.family === "systemSmall" || Widget.family === "accessoryRectangular") Widget.present(<SmallWidget data={data} settings={settings} carImageUrl={await vehicleImageUrl(data, settings)} />)
     else if (Widget.family === "systemLarge" || Widget.family === "systemExtraLarge") {
-      const properties = data.properties || {}
-      const existingMapUrl = await cachedMapSnapshot(properties, false)
-      const mapPromise = existingMapUrl || !vehicleCoordinate(properties) ? Promise.resolve(existingMapUrl) : createMapSnapshot(properties)
-      const carImageUrl = await vehicleImageUrl(data, settings)
-      const mapUrl = await mapPromise
-      Widget.present(<LargeWidget data={data} settings={settings} mapImageUrl={mapUrl} carImageUrl={carImageUrl} />)
+      const coordinate = vehicleCoordinate(data.properties || {})
+      const widgetSize = Widget.displaySize ?? { width: 338, height: 354 }
+      const vehicleName = settings.customName || `${data.brand || "BMW"} ${data.model || ""}`.trim()
+      const [snapshot, carImageUrl] = await Promise.all([
+        coordinate ? takeVehicleMapSnapshot({
+          coordinate,
+          width: widgetSize.width,
+          height: 180,
+          appearance: Device.colorScheme === "dark" ? "dark" : "light",
+          vehicleName,
+        }) : Promise.resolve(null),
+        vehicleImageUrl(data, settings),
+      ])
+      Widget.present(<LargeWidget data={data} settings={settings} mapImage={snapshot?.image} carImageUrl={carImageUrl} />)
     }
     else Widget.present(<MediumWidget data={data} settings={settings} carImageUrl={await vehicleImageUrl(data, settings)} />)
   } catch (e: any) {
@@ -420,4 +387,4 @@ async function main() {
   }
 }
 
-main()
+main().finally(() => Script.exit())
