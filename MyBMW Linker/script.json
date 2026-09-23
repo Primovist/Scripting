@@ -29,7 +29,7 @@
   "icon" : "car.fill",
   "color" : "#0066B1",
   "entry" : "index.tsx",
-  "version" : "1.2.2",
+  "version" : "1.2.3",
   "remoteResource" : {
     "url" : "https:\/\/github.com\/Primovist\/Scripting\/tree\/main\/MyBMW%20Linker",
     "autoUpdateInterval" : null,
