@@ -20,7 +20,6 @@ export async function takeVehicleMapSnapshot(options: {
   width: number
   height: number
   appearance?: "light" | "dark"
-  vehicleName?: string
 }): Promise<MapSnapshot | null> {
   if (!validCoordinate(options.coordinate)) return null
 
