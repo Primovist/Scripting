@@ -1,25 +1,10 @@
-import { fetch, Notification, type RequestInit } from "scripting"
+import { fetch, type RequestInit } from "scripting"
 import { SCRIPT_NAME, type Settings, defaultSettings } from "./constants"
 
 const settingsKey = `${SCRIPT_NAME}:settings`
 
 export function nowSeconds(): number {
   return Math.floor(Date.now() / 1000)
-}
-
-export function today(): string {
-  return formatDate(new Date(), "yyyy-MM-dd")
-}
-
-export function formatDate(date: Date, pattern = "yyyy-MM-dd HH:mm:ss"): string {
-  const pad = (n: number, len = 2) => String(n).padStart(len, "0")
-  return pattern
-    .replace("yyyy", String(date.getFullYear()))
-    .replace("MM", pad(date.getMonth() + 1))
-    .replace("dd", pad(date.getDate()))
-    .replace("HH", pad(date.getHours()))
-    .replace("mm", pad(date.getMinutes()))
-    .replace("ss", pad(date.getSeconds()))
 }
 
 export function formatUserMobile(input: string): string {
@@ -84,14 +69,10 @@ export function normalizeSettings(settings: Settings): Settings {
   }
 }
 
-export async function notify(title: string, body: string, enabled = true) {
-  if (!enabled) return
-  await Notification.schedule({ title, body, sound: "default" })
-}
-
 export async function requestJSON<T = any>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, init)
+  const res = await fetch(url, { timeout: 15, ...init })
   const text = await res.text()
+  if (!res.ok) throw new Error(`请求失败 (${res.status}): ${text.slice(0, 160)}`)
   try {
     return JSON.parse(text) as T
   } catch {
@@ -100,6 +81,8 @@ export async function requestJSON<T = any>(url: string, init: RequestInit = {}):
 }
 
 export async function requestText(url: string, init: RequestInit = {}): Promise<string> {
-  const res = await fetch(url, init)
-  return await res.text()
+  const res = await fetch(url, { timeout: 15, ...init })
+  const text = await res.text()
+  if (!res.ok) throw new Error(`请求失败 (${res.status}): ${text.slice(0, 160)}`)
+  return text
 }
