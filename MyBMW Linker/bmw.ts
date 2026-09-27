@@ -4,7 +4,6 @@ import {
   DEFAULT_X,
   DEFAULT_X_CORRELATION_ID,
   KEYS,
-  REMOTE_ROOT,
   type Settings,
   type VehicleData,
   type VehicleSnapshot,
@@ -15,6 +14,20 @@ type CaptchaHeaders = Record<string, string>
 
 function appHeaders(extra: Record<string, string> = {}): Record<string, string> {
   return { ...BMW_HEADERS, ...extra }
+}
+
+async function withTimeout<T>(promise: Promise<T>, milliseconds: number, stage: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${stage}超时（${Math.round(milliseconds / 1000)} 秒）`)), milliseconds)
+      }),
+    ])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
 }
 
 function vehicleTypeFromProfile(profile?: Record<string, any> | null): "BEV" | "PHEV" | "ICE" | undefined {
@@ -112,36 +125,56 @@ export class BMWClient {
     return normalized
   }
 
-  getSignature(username: string): string {
-    // 原 Scriptable 文件中 getSignature 是 jsjiami 混淆代码；核心逻辑是用手机号、时间因子、x-user-agent build 号生成 nonce 服务器参数 k。
-    const match = BMW_HEADERS["x-user-agent"].match(/^.+?;.*?;(.+?)\((.+?)\).+$/)
-    const build = Number(match?.[2] || 0)
-    const phoneDigits = Array.from(username).filter(c => !Number.isNaN(Number(c))).join("")
-    const seed = phoneDigits.slice(0, 13)
-    // 注意：原脚本的混淆签名实际使用 getCurrentTimeStamp()/1000；
-    // getCurrentTimeStamp() 已经是秒级时间戳，所以这里必须再除以 1000，否则远程 nonce 服务会返回 noSignature。
-    const mixed = (Number(seed) + Math.floor(nowSeconds() / 1000) + build).toString(36)
-    const reversed = Array.from(mixed).reverse().join("")
-    const charCodes = Array.from(reversed).map(c => c.charCodeAt(0).toString(10)).join("")
-    const diffs = Array.from(charCodes).map((c, i) => Math.abs(Number(c) - i).toString(10)).join("")
-    const picked = Array.from(seed).map(d => diffs[Number(d)] || "0").join("")
-    return Number(picked || "0").toString(36)
+  private async bmwNonceString(phone: string): Promise<string> {
+    let cryptoSource = ""
+    try {
+      cryptoSource = await requestText("https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.js", { timeout: 12 })
+    } catch (error) {
+      throw new Error(`下载 AES 加密组件失败：${error instanceof Error ? error.message : String(error)}`)
+    }
+    if (!cryptoSource || !cryptoSource.includes("CryptoJS")) throw new Error("AES 加密组件内容无效")
+
+    const webView = new WebViewController({ ephemeral: true })
+    try {
+      const loaded = await withTimeout(webView.loadHTML(
+        `<!doctype html><meta charset="utf-8"><script>${cryptoSource.replace(/<\/script/gi, "<\\/script")}</script>`,
+      ), 5000, "初始化 AES nonce")
+      if (!loaded) throw new Error("AES nonce 页面初始化失败")
+      const encrypted = await withTimeout(webView.evaluateJavaScript<string>(`
+        if (typeof CryptoJS === "undefined") throw new Error("CryptoJS 初始化失败");
+        const key = CryptoJS.enc.Utf8.parse("Bimmer2021888666");
+        const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
+        return CryptoJS.AES.encrypt(${JSON.stringify(phone)}, key, {
+          iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        }).toString();
+      `), 5000, "生成 AES nonce")
+      if (typeof encrypted !== "string" || !encrypted.length) throw new Error("AES nonce 结果为空")
+      return encrypted
+    } finally {
+      webView.dispose()
+    }
   }
 
-  async getNonceData(username: string, _x = 0): Promise<any> {
-    return await requestJSON(`https://www.widgetc.cn/bmw/api/encryptV5?phone=${encodeURIComponent(username)}`, {
+  async getNonceData(username: string, _x = 0, onProgress?: (message: string) => void): Promise<any> {
+    onProgress?.("正在本地生成 nonce 请求签名…")
+    const requestProof = await this.bmwNonceString(username)
+    onProgress?.("正在请求登录验证服务…")
+    return await withTimeout(requestJSON(`https://www.widgetc.cn/bmw/api/encryptV5?phone=${encodeURIComponent(username)}`, {
+      timeout: 12,
       headers: {
-        _xua: "android(29);bmw;5.11.0(48081);cn",
+        _xua: BMW_HEADERS["x-user-agent"],
         _sv: "27.0",
         accept: "*/*",
         _chl: "appstore",
         "accept-language": "zh-CN,zh-Hans;q=0.9",
-        _nonce: "lMmJ/p/R110hS9k1qBrMdQ==",
+        _nonce: requestProof,
         "user-agent": "Bimmer/2000501 CFNetwork/3896.100.1.2.1 Darwin/27.0.0",
         phm: "iPhone18,1(27.0)",
         _av: "2.0.5",
       },
-    })
+    }), 15000, "请求登录验证服务")
   }
 
   private async captchaPosition(backGroundImg: string): Promise<string> {
@@ -150,34 +183,49 @@ export class BMWClient {
     if (!pixels) return "0.50"
     const bytes = pixels.data.toUint8Array()
     if (!bytes) return "0.50"
+
     const target = [220, 230, 221]
     const tolerance = 15
-    const block = { width: 15, height: 75 }
-    for (let y = 0; y < pixels.height - block.height; y++) {
-      for (let x = 0; x < pixels.width - block.width; x++) {
-        let ok = true
-        for (let i = 0; i < block.height && ok; i++) {
-          for (let j = 0; j < block.width; j++) {
-            const idx = ((y + i) * pixels.width + (x + j)) * 4
-            if (
-              Math.abs(bytes[idx] - target[0]) > tolerance ||
-              Math.abs(bytes[idx + 1] - target[1]) > tolerance ||
-              Math.abs(bytes[idx + 2] - target[2]) > tolerance
-            ) { ok = false; break }
-          }
-        }
-        if (ok) return ((x - 26) / pixels.width).toFixed(2)
+    const width = pixels.width
+    const height = pixels.height
+    let bestX = -1
+    let bestScore = 0
+
+    // 原实现逐像素验证 15×75 色块，最坏会执行数千万次比较并冻结 JS 主线程。
+    // 改为按列、隔行采样，寻找与目标颜色连续匹配最多的位置。
+    for (let x = 0; x < width; x += 2) {
+      let score = 0
+      for (let y = 0; y < height; y += 3) {
+        const idx = (y * width + x) * 4
+        if (
+          Math.abs(bytes[idx] - target[0]) <= tolerance &&
+          Math.abs(bytes[idx + 1] - target[1]) <= tolerance &&
+          Math.abs(bytes[idx + 2] - target[2]) <= tolerance
+        ) score++
       }
+      if (score > bestScore) {
+        bestScore = score
+        bestX = x
+      }
+      if (x > 0 && x % 80 === 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, 0))
+      }
+    }
+
+    const minimumScore = Math.max(8, Math.floor(height / 18))
+    if (bestX >= 0 && bestScore >= minimumScore) {
+      return Math.max(0, Math.min(1, (bestX - 26) / width)).toFixed(2)
     }
     return "0.50"
   }
 
-  async getSliderCaptcha(phone = this.phone(), retry = 0): Promise<string> {
+  async getSliderCaptcha(phone = this.phone(), retry = 0, onProgress?: (message: string) => void): Promise<string> {
     const mobile = formatUserMobile(phone)
-    const candidates = ["x", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"]
+    const candidates = ["x", "0", "1"]
     let captcha: any = null
     let lastError = ""
     for (let i = 0; i < candidates.length; i++) {
+      onProgress?.(`正在创建滑块验证（${i + 1}/${candidates.length}）…`)
       let uuid = uuidv4()
       let x = (candidates[i] + md5Hex(uuidv4()) + md5Hex(uuidv4())).slice(0, 64)
       if (i === 0 && retry === 0) { uuid = DEFAULT_X_CORRELATION_ID; x = DEFAULT_X }
@@ -196,6 +244,7 @@ export class BMWClient {
       lastError = res?.description || res?.message || JSON.stringify(res).slice(0, 160)
     }
     if (!captcha?.data?.verifyId) throw new Error(`无法创建滑块验证：${lastError || "BMW 接口未返回验证码"}`)
+    onProgress?.("正在识别并校验滑块验证码…")
     const position = await this.captchaPosition(captcha.data.backGroundImg)
     const checked = await requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/cop/verify-captcha`, {
       method: "POST",
@@ -203,7 +252,7 @@ export class BMWClient {
       body: JSON.stringify({ position, verifyId: captcha.data.verifyId, mobile }),
     })
     if (checked?.code === 200) return captcha.data.verifyId
-    if (retry < 2) return await this.getSliderCaptcha(mobile, retry + 1)
+    if (retry < 1) return await this.getSliderCaptcha(mobile, retry + 1, onProgress)
     throw new Error(`滑块验证码校验失败：${checked?.description || checked?.message || checked?.code}`)
   }
 
@@ -241,21 +290,36 @@ export class BMWClient {
       headers: appHeaders(),
     })
     if (keyRes?.code !== 200 || !keyRes?.data?.value) throw new Error(keyRes?.description || "获取密码加密公钥失败")
+
+    let librarySource = ""
+    try {
+      librarySource = await requestText("https://cdn.jsdelivr.net/npm/jsencrypt@3.3.2/bin/jsencrypt.min.js")
+    } catch (error) {
+      throw new Error(`下载密码加密组件失败：${error instanceof Error ? error.message : String(error)}`)
+    }
+    if (!librarySource || !librarySource.includes("JSEncrypt")) throw new Error("密码加密组件内容无效")
+
     const publicKey = keyRes.data.value
     const webView = new WebViewController({ ephemeral: true })
     try {
-      await webView.loadHTML(`<!doctype html><meta name="viewport" content="width=device-width"><script src="https://cdn.jsdelivr.net/npm/jsencrypt@3.3.2/bin/jsencrypt.min.js"></script>`)
-      for (let i = 0; i < 30; i++) {
-        const ready = await webView.evaluateJavaScript<boolean>("return typeof JSEncrypt !== 'undefined'")
-        if (ready) break
-        await new Promise<void>(resolve => setTimeout(() => resolve(), 100))
-      }
-      const encrypted = await webView.evaluateJavaScript<string>(`
-        if (typeof JSEncrypt === 'undefined') throw new Error('JSEncrypt 加密库加载失败');
-        const encrypt = new JSEncrypt();
-        encrypt.setPublicKey(${JSON.stringify(publicKey)});
-        return encrypt.encrypt(${JSON.stringify(password)});
-      `)
+      const loaded = await withTimeout(
+        webView.loadHTML(`<!doctype html><meta charset="utf-8"><script>${librarySource.replace(/<\/script/gi, "<\\/script")}</script>`),
+        5000,
+        "初始化密码加密组件",
+      )
+      if (!loaded) throw new Error("初始化密码加密组件失败")
+      const encrypted = await withTimeout(
+        webView.evaluateJavaScript<string>(`
+          if (typeof JSEncrypt === 'undefined') throw new Error('JSEncrypt 加密组件初始化失败');
+          const encrypt = new JSEncrypt();
+          encrypt.setPublicKey(${JSON.stringify(publicKey)});
+          const result = encrypt.encrypt(${JSON.stringify(password)});
+          if (!result) throw new Error('RSA 密码加密失败');
+          return result;
+        `),
+        5000,
+        "RSA 密码加密",
+      )
       if (!encrypted) throw new Error("密码加密失败")
       return encrypted
     } finally {
@@ -263,16 +327,19 @@ export class BMWClient {
     }
   }
 
-  async loginByPassword(password: string, refreshData = true): Promise<void> {
+  async loginByPassword(password: string, refreshData = true, onProgress?: (message: string) => void): Promise<void> {
     const phone = this.phone()
     if (!password) throw new Error("请输入密码")
-    const verifyId = await this.getSliderCaptcha(phone)
+    const verifyId = await this.getSliderCaptcha(phone, 0, onProgress)
+    onProgress?.("正在获取密码公钥及加密密码…")
     const encryptedPassword = await this.getEncryptedPassword(password)
-    const nonce = await this.getNonceData(phone)
-    if (!nonce || nonce.code !== 0 || !nonce.data) throw new Error("获取 nonce 失败")
+    onProgress?.("正在获取登录验证值…")
+    const nonceResponse = await this.getNonceData(phone, 0, onProgress)
+    if (!nonceResponse || nonceResponse.code !== 0 || !nonceResponse.data) throw new Error(`获取登录验证值失败：${nonceResponse?.message || nonceResponse?.description || nonceResponse?.code || "响应缺少 data"}`)
+    onProgress?.("正在提交 BMW 登录请求…")
     const res = await requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/login/pwd`, {
       method: "POST",
-      headers: appHeaders({ "x-login-nonce": nonce.data, ...this.xHeaders }),
+      headers: appHeaders({ "x-login-nonce": nonceResponse.data, ...this.xHeaders }),
       body: JSON.stringify({
         mobile: phone,
         password: encryptedPassword,
@@ -287,7 +354,10 @@ export class BMWClient {
     keySave(KEYS.refreshGcid, res.data.gcid)
     keyRemove(KEYS.accessToken)
     keyRemove(KEYS.tokenUpdatedAt)
-    if (refreshData) await this.getData(true)
+    if (refreshData) {
+      onProgress?.("密码登录成功，正在加载车辆数据…")
+      await this.getData(true)
+    }
   }
 
   async getAccessToken(force = false): Promise<string> {
@@ -368,7 +438,6 @@ export class BMWClient {
         headers: appHeaders({
           authorization: `Bearer ${accessToken}`,
           "bmw-vin": vin,
-          "x-user-agent": BMW_HEADERS["x-user-agent"],
         }),
       })
     } catch {
