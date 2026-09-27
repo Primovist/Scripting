@@ -5,7 +5,7 @@ export const BMW_SERVER_HOST = "https://myprofile.bmw.com.cn"
 export const BMW_HEADERS: Record<string, string> = {
   "Content-Type": "application/json; charset=utf-8",
   "Accept": "*/*",
-  "x-user-agent": "ios(27.0);bmw;6.8.2(50019);cn",
+  "x-user-agent": "ios(27.0);bmw;6.8.2(50519);cn",
   "Accept-Language": "zh-CN",
   "User-Agent": "Dart/3.2 (dart:io)",
 }
