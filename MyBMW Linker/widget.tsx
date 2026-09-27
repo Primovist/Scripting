@@ -1,8 +1,8 @@
 import { HStack, Image, Link, Script, Spacer, Text, VStack, Widget, ZStack, fetch } from "scripting"
 import { BMWClient } from "./bmw"
-import { BMW_HEADERS, BMW_SERVER_HOST, DEFAULT_LOGO_LIGHT, KEYS, type Settings, type VehicleData } from "./constants"
+import { BMW_HEADERS, BMW_SERVER_HOST, DEFAULT_LOGO_LIGHT, type Settings, type VehicleData } from "./constants"
 import { takeVehicleMapSnapshot } from "./map-snapshot"
-import { hidden, keyGet, normalizeSettings, readSettings } from "./storage"
+import { hidden, normalizeSettings, readSettings } from "./storage"
 
 function safeText(v: any, fallback = "--") { return v === undefined || v === null || v === "" ? fallback : String(v) }
 
@@ -35,10 +35,6 @@ function fuelRows(p: any, totalFuelLiters = 0): Array<{ icon: string; value: str
 
   if (!rows.length) rows.push({ icon: "fuelpump", value: "--" })
   return rows
-}
-
-function fuelSummary(p: any, totalFuelLiters = 0): string {
-  return fuelRows(p, totalFuelLiters).map(x => x.value).join(" / ")
 }
 
 
@@ -140,11 +136,6 @@ function controlMessages(p: any): string[] {
   return Array.from(new Set(list))
 }
 
-function carStatusText(p: any): string {
-  const messages = controlMessages(p)
-  return messages.length ? messages[0] : "ALL GOOD"
-}
-
 function snapshotControlMessages(snapshot: any): string[] {
   if (!snapshot) return []
   const list = Array.isArray(snapshot.checks) ? snapshot.checks.map((check: any) => check.title).filter(Boolean) : []
@@ -165,17 +156,25 @@ function snapshotDoorWindowStatus(snapshot: any): { ok: boolean; text: string; i
   return { ok: true, text: "门窗已关闭", icon: "checkmark.shield" }
 }
 async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<string> {
-  if (settings.customVehicleImage) return settings.customVehicleImage
+  const customImage = String(settings.customVehicleImage || "").trim()
+  if (customImage) return customImage
+
+  // VehicleStatus is the existing BMW image view used by this component.
+  // Keep a separate file per VIN and view so switching vehicles cannot show
+  // the previous vehicle's cached render.
+  const carView = "VehicleStatus"
+  const vin = String(data.vin || "").trim().toUpperCase()
+  if (!vin) return DEFAULT_LOGO_LIGHT
   const dir = `${FileManager.appGroupDocumentsDirectory}/MyBMW Linker`
-  const path = `${dir}/vehicle-status.png`
-  await FileManager.createDirectory(dir, true)
-  // 地图标记样式变更后重新生成，避免继续读取旧的红色大标记缓存。
+  const safeVin = vin.replace(/[^A-Z0-9_-]/g, "_")
+  const path = `${dir}/vehicle-${safeVin}-${carView.toLowerCase()}.png`
   try {
+    await FileManager.createDirectory(dir, true)
     const token = await new BMWClient(settings).getAccessToken(false)
-    if (!token || !data.vin) throw new Error("no token or vin")
-    const res = await fetch(`${BMW_SERVER_HOST}/eadrax-ics/v3/presentation/vehicles/${encodeURIComponent(data.vin)}/images?carView=VehicleStatus`, {
+    if (!token) throw new Error("no access token")
+    const res = await fetch(`${BMW_SERVER_HOST}/eadrax-ics/v3/presentation/vehicles/${encodeURIComponent(vin)}/images?carView=${encodeURIComponent(carView)}`, {
       method: "GET",
-      headers: { ...BMW_HEADERS, "x-user-agent": data.brand?.toLowerCase() === "mini" ? "ios(27.0);mini;6.8.2(50019);cn" : BMW_HEADERS["x-user-agent"], authorization: `Bearer ${token}`, "bmw-vin": data.vin },
+      headers: { ...BMW_HEADERS, "x-user-agent": data.brand?.toLowerCase() === "mini" ? "ios(27.0);mini;6.8.2(50519);cn" : BMW_HEADERS["x-user-agent"], authorization: `Bearer ${token}`, "bmw-vin": vin },
       timeout: 12,
       handleRedirect: async request => (request.url.startsWith(BMW_SERVER_HOST) ? request : null),
     })
@@ -185,6 +184,8 @@ async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<s
     await FileManager.writeAsData(path, imageData)
     return `file://${path}`
   } catch {
+    // A failed refresh should not cause another VIN's image to be reused.
+    // Without a confirmed local cache entry, use the neutral fallback.
     return DEFAULT_LOGO_LIGHT
   }
 }
@@ -368,14 +369,12 @@ async function main() {
     else if (Widget.family === "systemLarge" || Widget.family === "systemExtraLarge") {
       const coordinate = vehicleCoordinate(data.properties || {})
       const widgetSize = Widget.displaySize ?? { width: 338, height: 354 }
-      const vehicleName = settings.customName || `${data.brand || "BMW"} ${data.model || ""}`.trim()
       const [snapshot, carImageUrl] = await Promise.all([
         coordinate ? takeVehicleMapSnapshot({
           coordinate,
           width: widgetSize.width,
           height: 180,
           appearance: Device.colorScheme === "dark" ? "dark" : "light",
-          vehicleName,
         }) : Promise.resolve(null),
         vehicleImageUrl(data, settings),
       ])
