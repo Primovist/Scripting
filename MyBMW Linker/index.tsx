@@ -21,7 +21,6 @@ import {
   ZStack,
   Widget,
   useEffect,
-  useColorScheme,
   useState,
   Script,
 } from "scripting"
@@ -135,11 +134,11 @@ function LoginView({ initial, onDone }: { initial: Settings; onDone: () => void 
 
   async function loginByPassword() {
     setBusy(true)
-    setMessage("正在创建滑块验证、加密密码并登录…")
+    setMessage("正在创建滑块验证并加密密码登录…")
     try {
       writeSettings({ phone })
       const client = new BMWClient(normalizeSettings(readSettings()))
-      await client.loginByPassword(password)
+      await client.loginByPassword(password, true, setMessage)
       setMessage("密码登录成功。")
       onDone()
     } catch (e: any) {
@@ -185,8 +184,6 @@ function VehicleMapView({ data }: { data: VehicleData | null }) {
   const p: any = data?.properties || {}
   const coordinate = vehicleCoordinate(p)
   const title = p.location?.address?.formatted || "车辆位置"
-  const colorScheme = useColorScheme()
-  const mapStyle = colorScheme === "dark" ? { style: "standard" as const, elevation: "flat" as const } : { style: "standard" as const, elevation: "flat" as const }
   if (!coordinate) return <Text>暂无车辆坐标</Text>
   return <VStack spacing={8}>
     <Map
@@ -194,7 +191,7 @@ function VehicleMapView({ data }: { data: VehicleData | null }) {
         center: coordinate,
         span: { latitudeDelta: 0.01, longitudeDelta: 0.01 },
       })}
-      mapStyle={mapStyle}
+      mapStyle={{ style: "standard", elevation: "flat" }}
       controls={<>
         <MapCompass />
         <MapScaleView />
