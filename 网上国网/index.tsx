@@ -14,7 +14,7 @@ import {
   Script,
   Toggle
 } from "scripting"
-import { getSettings, saveSettings, DEFAULT_SETTINGS, SGCCSettings } from "./api"
+import { getSettings, saveSettings, DEFAULT_SETTINGS, SGCCSettings, getCredentials, saveCredentials, requestDeviceSms } from "./api"
 
 function SettingsView() {
   const dismiss = Navigation.useDismiss()
@@ -30,6 +30,16 @@ function SettingsView() {
   const [refreshInterval, setRefreshInterval] = useState(initial.refreshInterval)
   const [largeWidgetRange, setLargeWidgetRange] = useState<string>(initial.largeWidgetRange)
   const [previewFamily, setPreviewFamily] = useState<string>('systemMedium')
+  const credentials = getCredentials()
+  const [account, setAccount] = useState(credentials.account)
+  const [password, setPassword] = useState(credentials.password)
+  const [sms, setSms] = useState(credentials.sms)
+  const [loginStatus, setLoginStatus] = useState('')
+  const triggerSms = async () => {
+    saveCredentials(account, password, sms)
+    try { setLoginStatus(await requestDeviceSms(account, password)) }
+    catch (error) { setLoginStatus(String((error as any)?.message || error)) }
+  }
 
   const handleDimensionChange = (value: string) => {
     setDimension(value)
@@ -65,6 +75,7 @@ function SettingsView() {
     }
 
     saveSettings(newSettings)
+    saveCredentials(account, password, sms)
     Widget.reloadAll()
     dismiss()
   }
@@ -98,6 +109,14 @@ function SettingsView() {
           ]
         }}
       >
+        <Section header={<Text>网上国网登录</Text>} footer={<Text font="caption2" foregroundStyle="secondaryLabel">账号密码保存在本机 Keychain。需要新设备验证时，先触发登录获取短信验证码，再将验证码填入此处并刷新。</Text>}>
+          <TextField title="手机号/账号" value={account} keyboardType="numberPad" onChanged={setAccount} />
+          <TextField title="登录密码" value={password} onChanged={setPassword} />
+          <TextField title="短信验证码（如需要）" value={sms} keyboardType="numberPad" onChanged={setSms} />
+          <Button title="登录 / 获取短信验证码" action={triggerSms} />
+          {loginStatus ? <Text font="caption2" foregroundStyle="secondaryLabel">{loginStatus}</Text> : null}
+        </Section>
+
         <Section header={<Text>图表配置</Text>}>
           <Picker
             title="统计维度"
