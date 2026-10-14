@@ -1,4 +1,5 @@
 import { fetch } from "scripting"
+import { SgccProtocol } from "./protocol"
 
 // --- 全局声明 ---
 declare const Storage: any
@@ -55,10 +56,40 @@ export function saveSettings(settings: SGCCSettings) {
 
 // --- 数据获取 ---
 
+export function getCredentials() {
+  return { account: Keychain.get('sgcc.login.account') || '', password: Keychain.get('sgcc.login.password') || '', sms: Keychain.get('sgcc.login.sms.' + (Keychain.get('sgcc.login.account') || '')) || '' }
+}
+
+export function saveCredentials(account: string, password: string, sms: string) {
+  const normalizedAccount = account.trim().replace(/\D/g, '')
+  if (normalizedAccount) Keychain.set('sgcc.login.account', normalizedAccount, { accessibility: 'first_unlock_this_device' })
+  else Keychain.remove('sgcc.login.account')
+  if (password) Keychain.set('sgcc.login.password', password, { accessibility: 'first_unlock_this_device' })
+  else Keychain.remove('sgcc.login.password')
+  if (sms.trim()) Keychain.set('sgcc.login.sms.' + normalizedAccount, sms.trim(), { accessibility: 'first_unlock_this_device' })
+  else Keychain.remove('sgcc.login.sms.' + normalizedAccount)
+}
+
+export async function requestDeviceSms(account: string, password: string): Promise<string> {
+  if (!account.trim() || !password) throw new Error('请先填写账号和密码')
+  const app = new SgccProtocol.SgApp({}, account, password)
+  try {
+    const session = await app.ensure()
+    return session.accounts?.length ? '账号已登录，无需短信验证' : '登录成功，但没有获取到用电户号'
+  } catch (error) {
+    const message = String((error as any)?.message || error)
+    if (/短信验证码已发至/.test(message)) return message
+    throw error
+  }
+}
+
 function getCachedData() {
   try {
     const cacheString = Storage.get(CACHE_KEY)
-    if (cacheString) return JSON.parse(cacheString)
+    if (!cacheString) return null
+    const cachedData = JSON.parse(cacheString)
+    if (!Number.isFinite(Number(cachedData?.timestamp)) || !Array.isArray(cachedData?.data)) return null
+    return cachedData
   } catch (e) { }
   return null
 }
@@ -83,25 +114,30 @@ export async function getElectricityData(forceRefresh = false) {
   const cachedData = getCachedData()
 
   // 先检查缓存时间：当天数据直接展示，跨日数据才联网刷新。
-  if (cachedData && !forceRefresh && isSameLocalDay(Number(cachedData.timestamp))) {
+    if (cachedData && !forceRefresh && isSameLocalDay(Number(cachedData.timestamp))) {
     console.log('[API] Using today\'s cached data')
     return { data: cachedData.data, timestamp: cachedData.timestamp }
   }
 
   try {
-    const url = 'http://api.wsgw-rewrite.com/electricity/bill/all?monthElecQuantity=1&dayElecQuantity31=1&stepElecQuantity=1&eleBill=1'
-    const response = await fetch(url)
-    const data = await response.json()
-
-    if (data) {
-      saveCachedData(data)
-      return { data, timestamp: Date.now() }
+    const credentials = getCredentials()
+    if (!credentials.account || !credentials.password) {
+      if (cachedData) return { data: cachedData.data, timestamp: cachedData.timestamp }
+      throw new Error('请先在网上国网配置中填写账号和密码')
     }
+    const app = new SgccProtocol.SgApp({}, credentials.account, credentials.password)
+    const session = await app.ensure()
+    const accounts = session?.accounts || []
+    if (!accounts.length) throw new Error('登录成功，但没有获取到用电户号')
+    const results = []
+    for (const account of accounts) results.push(await SgccProtocol.queryAccount(app, account))
+    saveCachedData(results)
+    return { data: results, timestamp: Date.now() }
   } catch (error) {
-    console.error('[API] Network request failed:', error)
+    console.error('[API] Official SGCC request failed:', error)
     if (cachedData) return { data: cachedData.data, timestamp: cachedData.timestamp }
+    throw error
   }
-  return { data: [], timestamp: Date.now() }
 }
 
 /** 获取指定或者当前设置户号的数据 */
