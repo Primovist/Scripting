@@ -2,10 +2,17 @@ export const SCRIPT_NAME = "MyBMW Linker"
 export const REMOTE_ROOT = "https://m.qqtlr.com"
 export const BMW_SERVER_HOST = "https://myprofile.bmw.com.cn"
 
+const BMW_APP_OS_VERSION = "27.0"
+const BMW_APP_VERSION = "5.14.0"
+const BMW_APP_BUILD = "58417"
+export function brandUserAgent(brand: "bmw" | "mini" = "bmw"): string {
+  return `ios(${BMW_APP_OS_VERSION});${brand};${BMW_APP_VERSION}(${BMW_APP_BUILD});cn`
+}
+
 export const BMW_HEADERS: Record<string, string> = {
   "Content-Type": "application/json; charset=utf-8",
   "Accept": "*/*",
-  "x-user-agent": "ios(27.0);bmw;6.8.2(50519);cn",
+  "x-user-agent": brandUserAgent("bmw"),
   "Accept-Language": "zh-CN",
   "User-Agent": "Dart/3.2 (dart:io)",
 }
