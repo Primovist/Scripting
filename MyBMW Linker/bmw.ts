@@ -1,3 +1,4 @@
+import { fetch } from "scripting"
 import {
   BMW_HEADERS,
   BMW_SERVER_HOST,
@@ -14,6 +15,25 @@ type CaptchaHeaders = Record<string, string>
 
 function appHeaders(extra: Record<string, string> = {}): Record<string, string> {
   return { ...BMW_HEADERS, ...extra }
+}
+
+function randomNonceHeader(nBytes: number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  const length = Math.ceil((nBytes * 4) / 3)
+  let value = ""
+  for (let i = 0; i < length; i++) value += chars[Math.floor(Math.random() * chars.length)]
+  return value.replace(/=+$/, "") + "=="
+}
+
+async function fetchNonceResponse(url: string, headers: Record<string, string>) {
+  const origin = (url.match(/^https?:\/\/[^/]+/) ?? [url])[0]
+  return await fetch(url, {
+    method: "GET",
+    headers,
+    timeout: 20,
+    handleRedirect: async request => request.url.startsWith(origin) ? request : null,
+    debugLabel: "BMW nonce primary",
+  })
 }
 
 async function withTimeout<T>(promise: Promise<T>, milliseconds: number, stage: string): Promise<T> {
@@ -125,64 +145,64 @@ export class BMWClient {
     return normalized
   }
 
-  private async bmwNonceString(phone: string): Promise<string> {
-    let cryptoSource = ""
-    try {
-      cryptoSource = await requestText("https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.js", { timeout: 12 })
-    } catch (error) {
-      throw new Error(`下载 AES 加密组件失败：${error instanceof Error ? error.message : String(error)}`)
-    }
-    if (!cryptoSource || !cryptoSource.includes("CryptoJS")) throw new Error("AES 加密组件内容无效")
-
-    const webView = new WebViewController({ ephemeral: true })
-    try {
-      const loaded = await withTimeout(webView.loadHTML(
-        `<!doctype html><meta charset="utf-8"><script>${cryptoSource.replace(/<\/script/gi, "<\\/script")}</script>`,
-      ), 5000, "初始化 AES nonce")
-      if (!loaded) throw new Error("AES nonce 页面初始化失败")
-      const encrypted = await withTimeout(webView.evaluateJavaScript<string>(`
-        if (typeof CryptoJS === "undefined") throw new Error("CryptoJS 初始化失败");
-        const key = CryptoJS.enc.Utf8.parse("Bimmer2021888666");
-        const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
-        return CryptoJS.AES.encrypt(${JSON.stringify(phone)}, key, {
-          iv,
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.Pkcs7
-        }).toString();
-      `), 5000, "生成 AES nonce")
-      if (typeof encrypted !== "string" || !encrypted.length) throw new Error("AES nonce 结果为空")
-      return encrypted
-    } finally {
-      webView.dispose()
-    }
-  }
-
   async getNonceData(username: string, _x = 0, onProgress?: (message: string) => void): Promise<any> {
-    onProgress?.("正在本地生成 nonce 请求签名…")
-    const requestProof = await this.bmwNonceString(username)
-    onProgress?.("正在请求登录验证服务…")
-    return await withTimeout(requestJSON(`https://www.widgetc.cn/bmw/api/encryptV5?phone=${encodeURIComponent(username)}`, {
-      timeout: 12,
-      headers: {
-        _xua: BMW_HEADERS["x-user-agent"],
-        _sv: "27.0",
-        accept: "*/*",
-        _chl: "appstore",
-        "accept-language": "zh-CN,zh-Hans;q=0.9",
-        _nonce: requestProof,
-        "user-agent": "Bimmer/2000501 CFNetwork/3896.100.1.2.1 Darwin/27.0.0",
-        phm: "iPhone18,1(27.0)",
-        _av: "2.0.5",
-      },
-    }), 15000, "请求登录验证服务")
+    const normalized = username.trim()
+    if (!normalized || normalized.length > 128 || /[\s&#?]/.test(normalized)) {
+      throw new Error("nonce 服务标识无效")
+    }
+    onProgress?.("阶段 5/6：正在向 BMW MINI 小助手同款 nonce 服务请求…")
+    const url = `https://www.widgetc.cn/bmw/api/encryptV5?phone=${encodeURIComponent(normalized)}`
+    const headers = {
+      _xua: "android(29);bmw;5.11.0(48081);cn",
+      _nonce: randomNonceHeader(16),
+      "User-Agent": "Dart/3.2 (dart:io)",
+      _av: "2.0.5",
+      _sv: "17.6",
+      _chl: "appstore",
+      Accept: "*/*",
+    }
+    let response
+    try {
+      response = await fetchNonceResponse(url, headers)
+    } catch (httpsError) {
+      onProgress?.("阶段 5/6：HTTPS nonce 服务连接失败，按 BMW MINI 小助手兼容方式尝试 HTTP…")
+      const httpUrl = url.replace(/^https:\/\//, "http://")
+      try {
+        response = await fetchNonceResponse(httpUrl, headers)
+      } catch (httpError) {
+        throw new Error(`nonce 服务 HTTPS/HTTP 连接均失败：${httpError instanceof Error ? httpError.message : String(httpError)}`)
+      }
+    }
+    if (!response.ok) throw new Error(`nonce 服务 HTTP ${response.status}`)
+    const raw = await response.text()
+    if (raw.length > 8192) throw new Error("nonce 服务响应过大")
+    let nonce = raw.trim()
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === "object" && typeof parsed.data === "string") {
+        if (parsed.code !== undefined && parsed.code !== 0) {
+          throw new Error(`nonce 服务拒绝请求（code=${parsed.code}）：${parsed.description || parsed.message || "无说明"}`)
+        }
+        nonce = parsed.data.trim()
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("nonce 服务拒绝请求")) throw error
+    }
+    if (!/^[0-9A-Za-z]+$/.test(nonce) || nonce.length < 64 || nonce.length > 1024) {
+      throw new Error(`nonce 服务响应无效（长度 ${nonce.length}，前缀 ${nonce.slice(0, 80) || "空"}）`)
+    }
+    onProgress?.("阶段 5/6：nonce 服务返回有效 nonce。")
+    return { code: 0, data: nonce }
   }
 
   private async captchaPosition(backGroundImg: string): Promise<string> {
+    if (!backGroundImg || backGroundImg.length > 2_000_000) throw new Error(`验证码图片数据无效或过大（${backGroundImg?.length ?? 0} 字符）`)
     const img = UIImage.fromBase64String(backGroundImg)
-    const pixels = img?.getPixelData()
-    if (!pixels) return "0.50"
+    if (!img) throw new Error("Scripting 无法解码 BMW 返回的验证码图片")
+    const pixels = img.getPixelData()
+    if (!pixels) throw new Error("读取验证码像素失败（getPixelData 未返回数据）")
     const bytes = pixels.data.toUint8Array()
-    if (!bytes) return "0.50"
+    if (!bytes) throw new Error("读取验证码 RGBA 像素失败")
 
     const target = [220, 230, 221]
     const tolerance = 15
@@ -225,46 +245,73 @@ export class BMWClient {
     let captcha: any = null
     let lastError = ""
     for (let i = 0; i < candidates.length; i++) {
-      onProgress?.(`正在创建滑块验证（${i + 1}/${candidates.length}）…`)
+      onProgress?.(`阶段 1/6：正在向 BMW 创建滑块验证（参数尝试 ${i + 1}/${candidates.length}）…`)
       let uuid = uuidv4()
       let x = (candidates[i] + md5Hex(uuidv4()) + md5Hex(uuidv4())).slice(0, 64)
       if (i === 0 && retry === 0) { uuid = DEFAULT_X_CORRELATION_ID; x = DEFAULT_X }
       this.xHeaders = { "x-correlation-id": uuid, "bmw-correlation-id": uuid, x }
-      const res = await requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/cop/create-captcha`, {
-        method: "POST",
-        headers: appHeaders(this.xHeaders),
-        body: JSON.stringify({ mobile, brand: "BMW" }),
-      })
+      let res: any
+      try {
+        res = await withTimeout(requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/cop/create-captcha`, {
+          method: "POST",
+          headers: appHeaders(this.xHeaders),
+          body: JSON.stringify({ mobile, brand: "BMW" }),
+        }), 18000, `创建滑块验证（${i + 1}/${candidates.length}）`)
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error)
+        onProgress?.(`阶段 1/6：创建滑块请求失败（${i + 1}/${candidates.length}）：${lastError}`)
+        if (/(?:489|498).*blocked|blocked.*(?:489|498)/i.test(lastError)) {
+          const status = lastError.match(/(?:489|498)/)?.[0] ?? "489/498"
+          throw new Error(`BMW 创建验证码接口返回 HTTP ${status} Blocked。服务器在返回验证码图片前拒绝了请求；已停止后续候选重试。这不是图片解码或 nonce 错误。请先确认官方 App 可正常登录，并尝试不经过代理/过滤的网络；若官方 App 正常但此接口仍拒绝，需 BMW 服务端解释该拦截。`)
+        }
+        continue
+      }
       if (res?.code === 200 && res?.data?.verifyId && res?.data?.backGroundImg) {
+        onProgress?.(`阶段 1/6：BMW 已返回图片验证（图片数据 ${res.data.backGroundImg.length} 字符），正在解码…`)
         captcha = res
         keySave(KEYS.correlation, uuid)
         keySave(KEYS.x, x)
         break
       }
-      lastError = res?.description || res?.message || JSON.stringify(res).slice(0, 160)
+      lastError = `BMW code=${res?.code ?? "无"}：${res?.description || res?.message || JSON.stringify(res).slice(0, 160)}`
+      onProgress?.(`阶段 1/6：BMW 拒绝创建滑块（${i + 1}/${candidates.length}）：${lastError}`)
+      if (Number(res?.code) === 498 || /blocked/i.test(String(res?.description || res?.message || ""))) {
+        throw new Error(`BMW 拒绝创建验证码（498 blocked）。这是 BMW 服务端的拦截响应，已停止继续重试，避免重复请求加重限制。请稍后再试，或通过官方 My BMW App 完成验证；这不是图片解码或 nonce 阶段的问题。`)
+      }
     }
     if (!captcha?.data?.verifyId) throw new Error(`无法创建滑块验证：${lastError || "BMW 接口未返回验证码"}`)
-    onProgress?.("正在识别并校验滑块验证码…")
-    const position = await this.captchaPosition(captcha.data.backGroundImg)
-    const checked = await requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/cop/verify-captcha`, {
+    onProgress?.("阶段 2/6：图片已收到，开始解码并识别滑块位置…")
+    let position: string
+    try {
+      position = await withTimeout(this.captchaPosition(captcha.data.backGroundImg), 12000, "读取并识别滑块图片")
+    } catch (error) {
+      throw new Error(`阶段 2/6 图片处理失败：${error instanceof Error ? error.message : String(error)}`)
+    }
+    onProgress?.(`阶段 3/6：图片分析完成（位置 ${position}），正在请求 BMW 校验…`)
+    const checked = await withTimeout(requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/cop/verify-captcha`, {
       method: "POST",
       headers: appHeaders(this.xHeaders),
       body: JSON.stringify({ position, verifyId: captcha.data.verifyId, mobile }),
-    })
-    if (checked?.code === 200) return captcha.data.verifyId
+    }), 18000, "提交滑块校验")
+    if (checked?.code === 200) {
+      onProgress?.("阶段 3/6：滑块校验通过。")
+      return captcha.data.verifyId
+    }
+    onProgress?.(`阶段 3/6：滑块校验未通过（code=${checked?.code ?? "无"}，${checked?.description || checked?.message || "无错误说明"}）`)
     if (retry < 1) return await this.getSliderCaptcha(mobile, retry + 1, onProgress)
     throw new Error(`滑块验证码校验失败：${checked?.description || checked?.message || checked?.code}`)
   }
 
-  async sendLoginSMS(): Promise<string> {
+  async sendLoginSMS(onProgress?: (message: string) => void): Promise<string> {
     const phone = this.phone()
-    const verifyId = await this.getSliderCaptcha(phone)
-    const res = await requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v1/cop/message`, {
+    const verifyId = await this.getSliderCaptcha(phone, 0, onProgress)
+    onProgress?.("短信验证阶段：滑块已通过，正在请求发送短信…")
+    const res = await withTimeout(requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v1/cop/message`, {
       method: "POST",
       headers: appHeaders(),
       body: JSON.stringify({ mobile: phone, deviceId: md5Hex(phone.slice(0, 16)), verifyId }),
-    })
-    if (res?.code !== 200 || !res?.data?.otpID) throw new Error(res?.description || "发送短信失败")
+    }), 18000, "请求发送登录短信")
+    if (res?.code !== 200 || !res?.data?.otpID) throw new Error(`发送短信失败（code=${res?.code ?? "无"}）：${res?.description || res?.message || "接口未返回 otpID"}`)
     return res.data.otpID
   }
 
@@ -289,7 +336,7 @@ export class BMWClient {
       method: "GET",
       headers: appHeaders(),
     })
-    if (keyRes?.code !== 200 || !keyRes?.data?.value) throw new Error(keyRes?.description || "获取密码加密公钥失败")
+    if (keyRes?.code !== 200 || !keyRes?.data?.value) throw new Error(`获取 BMW 密码公钥失败（code=${keyRes?.code ?? "无"}）：${keyRes?.description || keyRes?.message || "响应缺少公钥"}`)
 
     let librarySource = ""
     try {
@@ -331,12 +378,12 @@ export class BMWClient {
     const phone = this.phone()
     if (!password) throw new Error("请输入密码")
     const verifyId = await this.getSliderCaptcha(phone, 0, onProgress)
-    onProgress?.("正在获取密码公钥及加密密码…")
+    onProgress?.("阶段 4/6：滑块已通过，正在获取 BMW 密码公钥…")
     const encryptedPassword = await this.getEncryptedPassword(password)
-    onProgress?.("正在获取登录验证值…")
+    onProgress?.("阶段 5/6：密码加密完成，开始获取登录 nonce…")
     const nonceResponse = await this.getNonceData(phone, 0, onProgress)
     if (!nonceResponse || nonceResponse.code !== 0 || !nonceResponse.data) throw new Error(`获取登录验证值失败：${nonceResponse?.message || nonceResponse?.description || nonceResponse?.code || "响应缺少 data"}`)
-    onProgress?.("正在提交 BMW 登录请求…")
+    onProgress?.("阶段 6/6：nonce 已获取，正在提交 BMW 密码登录请求…")
     const res = await requestJSON(`${BMW_SERVER_HOST}/eadrax-coas/v2/login/pwd`, {
       method: "POST",
       headers: appHeaders({ "x-login-nonce": nonceResponse.data, ...this.xHeaders }),
