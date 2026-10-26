@@ -70,9 +70,21 @@ export function normalizeSettings(settings: Settings): Settings {
 }
 
 export async function requestJSON<T = any>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, { timeout: 15, ...init })
+  const origin = (url.match(/^https?:\/\/[^/]+/) ?? [url])[0]
+  let res
+  try {
+    res = await fetch(url, {
+      timeout: 15,
+      // BMW Companion 同样限制重定向留在 BMW 主机；跨主机跳转可能在 iOS Fetch 中表现为泛化的「请求失败」。
+      handleRedirect: async request => request.url.startsWith(origin) ? request : null,
+      debugLabel: `MyBMW Linker ${url}`,
+      ...init,
+    })
+  } catch (error) {
+    throw new Error(`网络请求失败 [${url}]：${error instanceof Error ? error.message : String(error)}`)
+  }
   const text = await res.text()
-  if (!res.ok) throw new Error(`请求失败 (${res.status}): ${text.slice(0, 160)}`)
+  if (!res.ok) throw new Error(`HTTP 请求失败 [${url}] (${res.status}): ${text.slice(0, 240)}`)
   try {
     return JSON.parse(text) as T
   } catch {
@@ -81,8 +93,19 @@ export async function requestJSON<T = any>(url: string, init: RequestInit = {}):
 }
 
 export async function requestText(url: string, init: RequestInit = {}): Promise<string> {
-  const res = await fetch(url, { timeout: 15, ...init })
+  const origin = (url.match(/^https?:\/\/[^/]+/) ?? [url])[0]
+  let res
+  try {
+    res = await fetch(url, {
+      timeout: 15,
+      handleRedirect: async request => request.url.startsWith(origin) ? request : null,
+      debugLabel: `MyBMW Linker ${url}`,
+      ...init,
+    })
+  } catch (error) {
+    throw new Error(`文本请求失败 [${url}]：${error instanceof Error ? error.message : String(error)}`)
+  }
   const text = await res.text()
-  if (!res.ok) throw new Error(`请求失败 (${res.status}): ${text.slice(0, 160)}`)
+  if (!res.ok) throw new Error(`HTTP 文本请求失败 [${url}] (${res.status}): ${text.slice(0, 240)}`)
   return text
 }
