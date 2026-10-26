@@ -1,6 +1,6 @@
 import { HStack, Image, Link, Script, Spacer, Text, VStack, Widget, ZStack, fetch } from "scripting"
 import { BMWClient } from "./bmw"
-import { BMW_HEADERS, BMW_SERVER_HOST, DEFAULT_LOGO_LIGHT, type Settings, type VehicleData } from "./constants"
+import { brandUserAgent, BMW_HEADERS, BMW_SERVER_HOST, DEFAULT_LOGO_LIGHT, type Settings, type VehicleData } from "./constants"
 import { takeVehicleMapSnapshot } from "./map-snapshot"
 import { hidden, normalizeSettings, readSettings } from "./storage"
 
@@ -174,7 +174,7 @@ async function vehicleImageUrl(data: VehicleData, settings: Settings): Promise<s
     if (!token) throw new Error("no access token")
     const res = await fetch(`${BMW_SERVER_HOST}/eadrax-ics/v3/presentation/vehicles/${encodeURIComponent(vin)}/images?carView=${encodeURIComponent(carView)}`, {
       method: "GET",
-      headers: { ...BMW_HEADERS, "x-user-agent": data.brand?.toLowerCase() === "mini" ? "ios(27.0);mini;6.8.2(50519);cn" : BMW_HEADERS["x-user-agent"], authorization: `Bearer ${token}`, "bmw-vin": vin },
+      headers: { ...BMW_HEADERS, "x-user-agent": brandUserAgent(data.brand?.toLowerCase() === "mini" ? "mini" : "bmw"), authorization: `Bearer ${token}`, "bmw-vin": vin },
       timeout: 12,
       handleRedirect: async request => (request.url.startsWith(BMW_SERVER_HOST) ? request : null),
     })
