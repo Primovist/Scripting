@@ -105,11 +105,11 @@ function LoginView({ initial, onDone }: { initial: Settings; onDone: () => void 
 
   async function sendSMS() {
     setBusy(true)
-    setMessage("正在创建滑块验证码并发送短信…")
+    setMessage("短信验证阶段 1/4：正在创建 BMW 图片验证…")
     try {
       writeSettings({ phone })
       const client = new BMWClient(normalizeSettings(readSettings()))
-      const id = await client.sendLoginSMS()
+      const id = await client.sendLoginSMS(setMessage)
       setOtpId(id)
       setMessage("短信已发送，请填写验证码。")
     } catch (e: any) {
